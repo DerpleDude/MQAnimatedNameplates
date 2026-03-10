@@ -101,6 +101,8 @@ public:
 
 	static void RenderNamePlateText(CursorState& cursor, ImU32 color, const char* text);
 
+	static void AddRectFilledMultiColorRounded(ImDrawList& draw_list, const ImVec2& p_min, const ImVec2& p_max, ImU32 col_upr_left, ImU32 col_upr_right, ImU32 col_bot_right, ImU32 col_bot_left, float rounding, ImDrawFlags flags);
+
 	static void RenderNamePlateRect(
 		CursorState& cursor,
 		const ImVec2& size,
