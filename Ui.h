@@ -14,137 +14,111 @@ namespace eqlib
 	class PlayerClient;
 }
 
-class Ui
+namespace Ui {
+
+
+struct TooltipState
+{
+	int was_hovered;
+	float tooltip_time;
+};
+
+struct TrendState
+{
+	float lastPct;
+	int direction;
+};
+
+struct AnimState
+{
+	float lastTarget;
+};
+
+struct StateStruct
+{
+	std::unordered_map<std::string, TrendState> ProgBarTrendState;
+	std::unordered_map<std::string, AnimState> ProgBarAnimState;
+
+	TooltipState TooltipAnimationState;
+};
+extern StateStruct State;
+
+
+class AnimatedNameplatesSettings
 {
 public:
-	struct TooltipState
-	{
-		int was_hovered;
-		float tooltip_time;
-	};
+	AnimatedNameplatesSettings() { LoadSettings(); }
 
-	struct TrendState
-	{
-		float lastPct;
-		int direction;
-	};
+	void SaveSettings();
+	void LoadSettings();
 
-	struct AnimState
-	{
-		float lastTarget;
-	};
+	void SetShowBuffIcons(bool show) { m_showBuffIcons = show; m_configNode["ShowBuffIcons"] = show; SaveSettings(); }
+	void SetPadding(const ImVec2& padding) { m_padding = padding; m_configNode["PaddingX"] = padding.x; m_configNode["PaddingY"] = padding.y; SaveSettings(); }
+	void SetFontSize(float size) { m_fontSize = size; m_configNode["FontSize"] = size; SaveSettings(); }
+	void SetIconSize(float size) { m_iconSize = size; m_configNode["IconSize"] = size; SaveSettings(); }
+	void SetBarRounding(float rounding) { m_barRounding = rounding; m_configNode["BarRounding"] = rounding; SaveSettings(); }
+	void SetBarBorderThickness(float thickness) { m_barBorderThickness = thickness; m_configNode["BarBorderThickness"] = thickness; SaveSettings(); }
+	void SetShowDebugPanel(bool show) { m_showDebugPanel = show; m_configNode["ShowDebugPanel"] = show; SaveSettings(); }
+	void SetRenderForSelf(bool show) { m_renderForSelf = show; m_configNode["RenderForSelf"] = show; SaveSettings(); }
+	void SetRenderForTarget(bool show) { m_renderForTarget = show; m_configNode["RenderForTarget"] = show; SaveSettings(); }
+	void SetRenderForGroup(bool show) { m_renderForGroup = show; m_configNode["RenderForGroup"] = show; SaveSettings(); }
+	void SetNameplateWidth(float width) { m_nameplateWidth = width; m_configNode["NameplateWidth"] = width; SaveSettings(); }
+	void SetShowGuild(bool show) { m_showGuild = show; m_configNode["ShowGuild"] = show; SaveSettings(); }
+	void SetShowPurpose(bool show) { m_showPurpose = show; m_configNode["ShowPurpose"] = show; SaveSettings(); }
 
-	class AnimatedNameplatesSettings
-	{
-	public:
-		AnimatedNameplatesSettings() { LoadSettings(); }
+	bool GetShowBuffIcons() const { return m_showBuffIcons; }
+	const ImVec2& GetPadding() const { return m_padding; }
+	float GetFontSize() const { return m_fontSize; }
+	float GetIconSize() const { return m_iconSize; }
+	float GetBarRounding() const { return m_barRounding; }
+	float GetBarBorderThickness() const { return m_barBorderThickness; }
+	bool GetShowDebugPanel() const { return m_showDebugPanel; }
+	bool GetRenderForSelf() const { return m_renderForSelf; }
+	bool GetRenderForTarget() const { return m_renderForTarget; }
+	bool GetRenderForGroup() const { return m_renderForGroup; }
+	float GetNameplateWidth() const { return m_nameplateWidth; }
+	bool GetShowGuild() const { return m_showGuild; }
+	bool GetShowPurpose() const { return m_showPurpose; }
 
-		void SaveSettings();
-		void LoadSettings();
+private:
+	bool m_renderForSelf = true;
+	bool m_renderForTarget = true;
+	bool m_renderForGroup = true;
+	bool m_showGuild = true;
+	bool m_showPurpose = true;
 
-		void SetShowBuffIcons(bool show) { ShowBuffIcons = show; m_configNode["ShowBuffIcons"] = show; SaveSettings(); }
-		void SetPadding(const ImVec2& padding) { Padding = padding; m_configNode["PaddingX"] = padding.x; m_configNode["PaddingY"] = padding.y; SaveSettings(); }
-		void SetFontSize(float size) { FontSize = size; m_configNode["FontSize"] = size; SaveSettings(); }
-		void SetIconSize(float size) { IconSize = size; m_configNode["IconSize"] = size; SaveSettings(); }
-		void SetBarRounding(float rounding) { BarRounding = rounding; m_configNode["BarRounding"] = rounding; SaveSettings(); }
-		void SetBarBorderThickness(float thickness) { BarBorderThickness = thickness; m_configNode["BarBorderThickness"] = thickness; SaveSettings(); }
-		void SetShowDebugPanel(bool show) { ShowDebugPlanel = show; m_configNode["ShowDebugPanel"] = show; SaveSettings(); }
-		void SetRenderForSelf(bool show) { RenderForSelf = show; m_configNode["RenderForSelf"] = show; SaveSettings(); }
-		void SetRenderForTarget(bool show) { RenderForTarget = show; m_configNode["RenderForTarget"] = show; SaveSettings(); }
-		void SetRenderForGroup(bool show) { RenderForGroup = show; m_configNode["RenderForGroup"] = show; SaveSettings(); }
-		void SetNameplateWidth(float width) { NameplateWidth = width; m_configNode["NameplateWidth"] = width; SaveSettings(); }
-		void SetShowGuild(bool show) { ShowGuild = show; m_configNode["ShowGuild"] = show; SaveSettings(); }
-		void SetShowPurpose(bool show) { ShowPurpose = show; m_configNode["ShowPurpose"] = show; SaveSettings(); }
+	bool m_showBuffIcons = true;
+	bool m_showDebugPanel = false;
 
-		bool GetShowBuffIcons() const { return ShowBuffIcons; }
-		const ImVec2& GetPadding() const { return Padding; }
-		float GetFontSize() const { return FontSize; }
-		float GetIconSize() const { return IconSize; }
-		float GetBarRounding() const { return BarRounding; }
-		float GetBarBorderThickness() const { return BarBorderThickness; }
-		bool GetShowDebugPanel() const { return ShowDebugPlanel; }
-		bool GetRenderForSelf() const { return RenderForSelf; }
-		bool GetRenderForTarget() const { return RenderForTarget; }
-		bool GetRenderForGroup() const { return RenderForGroup; }
-		float GetNameplateWidth() const { return NameplateWidth; }
-		bool GetShowGuild() const { return ShowGuild; }
-		bool GetShowPurpose() const { return ShowPurpose; }
+	ImVec2 m_padding = ImVec2(8, 4);
+	float m_fontSize = 20.0f;
+	float m_iconSize = 20.0f;
+	float m_nameplateWidth = 500.0f;
 
-	private:
-		bool RenderForSelf = true;
-		bool RenderForTarget = true;
-		bool RenderForGroup = true;
-		bool ShowGuild = true;
-		bool ShowPurpose = true;
+	float m_barRounding = 6.0f;
+	float m_barBorderThickness = 2.5f;
 
-		bool ShowBuffIcons = true;
-		bool ShowDebugPlanel = false;
-		ImVec2 Padding = ImVec2(8, 4);
-		float FontSize = 20.0f;
-		float IconSize = 20.0f;
-		float NameplateWidth = 500.0f;
-
-		float BarRounding = 6.0f;
-		float BarBorderThickness = 2.5f;
-
-		std::string m_configFile = "MQAnimatedNameplates.yaml";
-		YAML::Node m_configNode =YAML::Node();
-	};
-
-	struct StateStruct
-	{ 
-		std::unordered_map<std::string, TrendState> ProgBarTrendState;
-		std::unordered_map<std::string, AnimState> ProgBarAnimState;
-
-		TooltipState TooltipAnimationState;
-	};
-
-	static void RenderNamePlateText(CursorState& cursor, ImU32 color, const char* text);
-
-	static void AddRectFilledMultiColorRounded(ImDrawList& draw_list, const ImVec2& p_min, const ImVec2& p_max, ImU32 col_upr_left, ImU32 col_upr_right, ImU32 col_bot_right, ImU32 col_bot_left, float rounding, ImDrawFlags flags);
-
-	static void RenderNamePlateRect(
-		CursorState& cursor,
-		const ImVec2& size,
-		ImU32 color,
-		float rounding,
-		float thickness,
-		bool filled
-	);
-
-	static void DrawInspectableSpellIcon(
-		CursorState& cursor,
-		eqlib::EQ_Spell* pSpell
-	);
-
-	static void RenderAnimatedPercentage(
-		CursorState& cursor,
-		const std::string& id,
-		float barPct,
-		float height,
-		float width,
-		const ImVec4& colLow,
-		const ImVec4& colMid,
-		const ImVec4& colHigh,
-		ImU32 colHighlight,
-		const std::string& label = ""
-	);
-
-	static void RenderFancyHPBar(
-		CursorState& cursor,
-		const std::string& id,
-		float hpPct,
-		float height,
-		float width,
-		ImU32 hpHighlight,
-		const std::string& label = ""
-	);
-
-	static void RenderSettingsPanel();
-
-	static AnimatedNameplatesSettings Settings;
-	static StateStruct State;
+	std::string m_configFile = "MQAnimatedNameplates.yaml";
+	YAML::Node m_configNode;
 };
+extern AnimatedNameplatesSettings Settings;
+
+void RenderNamePlateText(CursorState& cursor, ImU32 color, const char* text);
+void AddRectFilledMultiColorRounded(ImDrawList& draw_list, const ImVec2& p_min, const ImVec2& p_max,
+	ImU32 col_upr_left, ImU32 col_upr_right, ImU32 col_bot_right, ImU32 col_bot_left, float rounding, ImDrawFlags flags);
+
+void RenderNamePlateRect(CursorState& cursor, const ImVec2& size, ImU32 color, float rounding,
+	float thickness, bool filled);
+void DrawInspectableSpellIcon(CursorState& cursor, eqlib::EQ_Spell* pSpell);
+void RenderAnimatedPercentage(CursorState& cursor, const std::string& id, float barPct, float height, float width,
+	const ImVec4& colLow, const ImVec4& colMid, const ImVec4& colHigh, ImU32 colHighlight,
+	const std::string& label = "");
+void RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPct, float height, float width, ImU32 hpHighlight,
+	const std::string& label = "");
+
+void RenderSettingsPanel();
+
+} // namespace Ui
 
 struct CursorState
 {

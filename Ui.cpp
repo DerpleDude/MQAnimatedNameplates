@@ -26,13 +26,8 @@ void Ui::RenderNamePlateText(CursorState& cursor, ImU32 color, const char* text)
 	cursor.Move(size);
 }
 
-void Ui::RenderNamePlateRect(
-	CursorState& cursor,
-	const ImVec2& size,
-	ImU32 color,
-	float rounding,
-	float thickness,
-	bool filled)
+void Ui::RenderNamePlateRect(CursorState& cursor, const ImVec2& size, ImU32 color, float rounding,
+	float thickness, bool filled)
 {
 	ImDrawList* dl = ImGui::GetForegroundDrawList();
 
@@ -83,25 +78,11 @@ void Ui::DrawInspectableSpellIcon(CursorState& cursor, EQ_Spell* pSpell)
 	cursor.Move(size);
 }
 
-// helper
-static float Clamp(float v, float min, float max)
-{
-	return std::max(min, std::min(max, v));
-}
-
-void Ui::RenderAnimatedPercentage(
-	CursorState& cursor,
-	const std::string& id,
-	float barPct,
-	float height,
-	float width,
-	const ImVec4& colLow,
-	const ImVec4& colMid,
-	const ImVec4& colHigh,
-	ImU32 colHighlight,
+void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, float barPct, float height, float width,
+	const ImVec4& colLow, const ImVec4& colMid, const ImVec4& colHigh, ImU32 colHighlight,
 	const std::string& label)
 {
-	float targetPct = Clamp(barPct, 0.0f, 100.0f);
+	float targetPct = std::clamp(barPct, 0.0f, 100.0f);
 
 	// FIXME: This should be accumulated time, not absolute time.
 	float now = static_cast<float>(ImGui::GetTime());
@@ -319,31 +300,15 @@ void Ui::RenderAnimatedPercentage(
 	drawList->AddText(ImVec2(textX, textY), IM_COL32(255, 255, 255, 255), text.c_str());
 }
 
-void Ui::RenderFancyHPBar(
-	CursorState& cursor,
-	const std::string& id,
-	float hpPct,
-	float height,
-	float width,
-	ImU32 hpHighlight,
-	const std::string& label)
+void Ui::RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPct, float height, float width,
+	ImU32 hpHighlight, const std::string& label)
 {
 	ImVec4 hpLow = ImVec4(0.8f, 0.2f, 0.2f, 1.0f);
 	ImVec4 hpMid = ImVec4(0.9f, 0.7f, 0.2f, 1.0f);
 	ImVec4 hpHigh = ImVec4(0.2f, 0.9f, 0.2f, 1.0f);
 
-	RenderAnimatedPercentage(
-		cursor,
-		id,
-		hpPct,
-		height,
-		width,
-		hpLow,
-		hpMid,
-		hpHigh,
-		hpHighlight,
-		label
-	);
+	RenderAnimatedPercentage(cursor, id, hpPct, height, width, hpLow, hpMid, hpHigh,
+		hpHighlight, label);
 }
 
 void Ui::RenderSettingsPanel() 
@@ -410,22 +375,22 @@ void Ui::AnimatedNameplatesSettings::LoadSettings()
 	{
 		m_configNode = YAML::LoadFile(m_configFile);
 
-		ShowBuffIcons = m_configNode["ShowBuffIcons"].as<bool>(ShowBuffIcons);
-		ShowDebugPlanel = m_configNode["ShowDebugPanel"].as<bool>(ShowDebugPlanel);
-		FontSize = m_configNode["FontSize"].as<float>(FontSize);
-		IconSize = m_configNode["IconSize"].as<float>(IconSize);
-		BarRounding = m_configNode["BarRounding"].as<float>(BarRounding);
-		BarBorderThickness = m_configNode["BarBorderThickness"].as<float>(BarBorderThickness);
-		RenderForSelf = m_configNode["RenderForSelf"].as<bool>(RenderForSelf);
-		RenderForTarget = m_configNode["RenderForTarget"].as<bool>(RenderForTarget);
-		RenderForGroup = m_configNode["RenderForGroup"].as<bool>(RenderForGroup);
-		NameplateWidth = m_configNode["NameplateWidth"].as<float>(NameplateWidth);
-		ShowGuild = m_configNode["ShowGuild"].as<bool>(ShowGuild);
-		ShowPurpose = m_configNode["ShowPurpose"].as<bool>(ShowPurpose);
+		m_showBuffIcons = m_configNode["ShowBuffIcons"].as<bool>(m_showBuffIcons);
+		m_showDebugPanel = m_configNode["ShowDebugPanel"].as<bool>(m_showDebugPanel);
+		m_fontSize = m_configNode["FontSize"].as<float>(m_fontSize);
+		m_iconSize = m_configNode["IconSize"].as<float>(m_iconSize);
+		m_barRounding = m_configNode["BarRounding"].as<float>(m_barRounding);
+		m_barBorderThickness = m_configNode["BarBorderThickness"].as<float>(m_barBorderThickness);
+		m_renderForSelf = m_configNode["RenderForSelf"].as<bool>(m_renderForSelf);
+		m_renderForTarget = m_configNode["RenderForTarget"].as<bool>(m_renderForTarget);
+		m_renderForGroup = m_configNode["RenderForGroup"].as<bool>(m_renderForGroup);
+		m_nameplateWidth = m_configNode["NameplateWidth"].as<float>(m_nameplateWidth);
+		m_showGuild = m_configNode["ShowGuild"].as<bool>(m_showGuild);
+		m_showPurpose = m_configNode["ShowPurpose"].as<bool>(m_showPurpose);
 
-		Padding = ImVec2(
-			m_configNode["PaddingX"].as<float>(Padding.x),
-			m_configNode["PaddingY"].as<float>(Padding.y)
+		m_padding = ImVec2(
+			m_configNode["PaddingX"].as<float>(m_padding.x),
+			m_configNode["PaddingY"].as<float>(m_padding.y)
 		);
 	}
 	catch (const YAML::ParserException& ex)
@@ -466,10 +431,10 @@ void Ui::AnimatedNameplatesSettings::SaveSettings()
 	}
 }
 
- // Helpers from imgui_draw.cpp
- // 
- // Normalize (x,y) if length > 0.0f; otherwise leave unchanged.
-static inline void Normalize2fOverZero(float& x, float& y)
+// Helpers from imgui_draw.cpp
+// 
+// Normalize (x,y) if length > 0.0f; otherwise leave unchanged.
+static void Normalize2fOverZero(float& x, float& y)
 {
 	const float d2 = x * x + y * y;
 	if (d2 > 0.0f)
@@ -483,7 +448,7 @@ static inline void Normalize2fOverZero(float& x, float& y)
 
 // Helper used by ImGui's AA fringe generation: scales by inv_len^2 and clamps
 // to avoid extremely large normals on nearly-degenerate segments.
-static inline void FixNormal2f(float& x, float& y)
+static void FixNormal2f(float& x, float& y)
 {
 	// This mirrors the intent in upstream imgui_draw.cpp (see ImGui issues #4053, #3366).
 	constexpr float FixNormalMaxInvLen2 = 100.0f;
