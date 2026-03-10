@@ -53,6 +53,8 @@ public:
 		void SetRenderForTarget(bool show) { RenderForTarget = show; m_configNode["RenderForTarget"] = show; SaveSettings(); }
 		void SetRenderForGroup(bool show) { RenderForGroup = show; m_configNode["RenderForGroup"] = show; SaveSettings(); }
 		void SetNameplateWidth(float width) { NameplateWidth = width; m_configNode["NameplateWidth"] = width; SaveSettings(); }
+		void SetShowGuild(bool show) { ShowGuild = show; m_configNode["ShowGuild"] = show; SaveSettings(); }
+		void SetShowPurpose(bool show) { ShowPurpose = show; m_configNode["ShowPurpose"] = show; SaveSettings(); }
 
 		bool GetShowBuffIcons() const { return ShowBuffIcons; }
 		const ImVec2& GetPadding() const { return Padding; }
@@ -65,11 +67,15 @@ public:
 		bool GetRenderForTarget() const { return RenderForTarget; }
 		bool GetRenderForGroup() const { return RenderForGroup; }
 		float GetNameplateWidth() const { return NameplateWidth; }
+		bool GetShowGuild() const { return ShowGuild; }
+		bool GetShowPurpose() const { return ShowPurpose; }
 
 	private:
 		bool RenderForSelf = true;
 		bool RenderForTarget = true;
 		bool RenderForGroup = true;
+		bool ShowGuild = true;
+		bool ShowPurpose = true;
 
 		bool ShowBuffIcons = true;
 		bool ShowDebugPlanel = false;
@@ -175,5 +181,11 @@ struct CursorState
 	void SameLine()
 	{
 		CursorPos = LastCursorLinePos;
+	}
+
+	void NewLine()
+	{
+		CursorPos.y += ImGui::GetTextLineHeight() + Ui::Settings.GetPadding().y;
+		CursorPos.x = LineStartXPos;
 	}
 };

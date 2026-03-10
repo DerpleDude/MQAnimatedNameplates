@@ -34,11 +34,21 @@ void DrawNameplates(PSPAWNINFO pSpawn)
 
 	const char* targetName = pSpawn->DisplayedName;
 	float pctHP = pSpawn->HPMax == 0 ? 0 : pSpawn->HPCurrent * 100.0f / pSpawn->HPMax;
-	char targetPctHPs[16];
-	sprintf_s(targetPctHPs, "%g%%", pctHP);
+	std::string targetPctHPs = std::format("{:.0f}%", pctHP);
+	int guildId = pSpawn->GuildID;
+	std::string targetGuild;
+	
+	if (Ui::Settings.GetShowGuild() && pGuild && guildId > 0)
+	{
+		targetGuild = std::format("<{}>", pGuild->GetGuildName(guildId));
+	}
 
-	char classInfo[64];
-	sprintf_s(classInfo, "%d %s", pSpawn->GetLevel(), GetClassDesc(pSpawn->GetClass()));
+	if (Ui::Settings.GetShowPurpose() && GetSpawnType(pSpawn) == NPC && strlen(pSpawn->Lastname) > 0)
+	{
+		targetGuild = std::format("({})", pSpawn->Lastname);
+	}
+
+	std::string classInfo = std::format("{} {}", pSpawn->GetLevel(), GetClassDesc(pSpawn->GetClass()));
 
 	ImVec2 canvasSize(Ui::Settings.GetNameplateWidth(), 50);
 	float baseHeadOffset = 35.0f;
@@ -108,21 +118,39 @@ void DrawNameplates(PSPAWNINFO pSpawn)
 
 	Ui::RenderNamePlateText(cursor, textColor, targetName);
 
-	// center this text
-	float classWidth = ImGui::CalcTextSize(classInfo).x;
-	curPos.x = (curPos.x + canvasSize.x / 2) -
-		(classWidth / 2 + Ui::Settings.GetPadding().x * 2);
-
-	cursor.SetPos(curPos);
-	Ui::RenderNamePlateText(cursor, textColor, classInfo);
-
 	// right justify this text
-	float hpWidth = ImGui::CalcTextSize(targetPctHPs).x;
+	float hpWidth = ImGui::CalcTextSize(targetPctHPs.c_str()).x;
 	curPos.x = (startXPos + canvasSize.x) -
 		(hpWidth + Ui::Settings.GetPadding().x * 2);
 
 	cursor.SetPos(curPos);
-	Ui::RenderNamePlateText(cursor, textColor, targetPctHPs);
+	Ui::RenderNamePlateText(cursor, textColor, targetPctHPs.c_str());
+
+	// center this text
+	float classWidth = ImGui::CalcTextSize(classInfo.c_str()).x;
+	curPos.x = (startXPos + canvasSize.x / 2) -
+		(classWidth / 2 + Ui::Settings.GetPadding().x * 2);
+
+	cursor.SetPos(curPos);
+	float LineLength = ImGui::CalcTextSize(targetName).x + ImGui::CalcTextSize(targetPctHPs.c_str()).x + ImGui::CalcTextSize(classInfo.c_str()).x + Ui::Settings.GetPadding().x * 4;
+
+	if (LineLength >= Ui::Settings.GetNameplateWidth() * 0.9f)
+		cursor.NewLine();
+
+	Ui::RenderNamePlateText(cursor, textColor, classInfo.c_str());
+
+	if (!targetGuild.empty())
+	{
+		// center this text
+		curPos = cursor.GetPos();
+		float guildWidth = ImGui::CalcTextSize(targetGuild.c_str()).x;
+		curPos.x = (startXPos + canvasSize.x / 2) -
+			(guildWidth / 2 + Ui::Settings.GetPadding().x * 2);
+		
+		cursor.SetPos(curPos);
+
+		Ui::RenderNamePlateText(cursor, textColor, targetGuild.c_str());
+	}
 
 	cursor.SetPos(ImVec2(startXPos, cursor.GetPos().y));
 

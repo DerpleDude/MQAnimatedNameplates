@@ -373,6 +373,14 @@ void Ui::RenderSettingsPanel()
 	if (ImGui::Checkbox("Render For Group", &renderForGroup))
 		Settings.SetRenderForGroup(renderForGroup);
 
+	bool showGuild = Settings.GetShowGuild();
+	if (ImGui::Checkbox("Show Guild", &showGuild))
+		Settings.SetShowGuild(showGuild);
+
+	bool showPurpose = Settings.GetShowPurpose();
+	if (ImGui::Checkbox("Show Purpose", &showPurpose))
+		Settings.SetShowPurpose(showPurpose);
+
 	float nameplateWidth = Settings.GetNameplateWidth();
 	if (ImGui::SliderFloat("Nameplate Width", &nameplateWidth, 100.0f, 1500.0f))
 		Settings.SetNameplateWidth(nameplateWidth);
@@ -412,6 +420,8 @@ void Ui::AnimatedNameplatesSettings::LoadSettings()
 		RenderForTarget = m_configNode["RenderForTarget"].as<bool>(RenderForTarget);
 		RenderForGroup = m_configNode["RenderForGroup"].as<bool>(RenderForGroup);
 		NameplateWidth = m_configNode["NameplateWidth"].as<float>(NameplateWidth);
+		ShowGuild = m_configNode["ShowGuild"].as<bool>(ShowGuild);
+		ShowPurpose = m_configNode["ShowPurpose"].as<bool>(ShowPurpose);
 
 		Padding = ImVec2(
 			m_configNode["PaddingX"].as<float>(Padding.x),
