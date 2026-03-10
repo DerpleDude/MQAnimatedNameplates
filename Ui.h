@@ -62,6 +62,7 @@ public:
 	void SetRenderForSelf(bool show) { m_renderForSelf = show; m_configNode["RenderForSelf"] = show; SaveSettings(); }
 	void SetRenderForTarget(bool show) { m_renderForTarget = show; m_configNode["RenderForTarget"] = show; SaveSettings(); }
 	void SetRenderForGroup(bool show) { m_renderForGroup = show; m_configNode["RenderForGroup"] = show; SaveSettings(); }
+	void SetRenderForAllHaters(bool show) { m_renderForAllHaters = show; m_configNode["RenderForAllHaters"] = show; SaveSettings(); }
 	void SetNameplateWidth(float width) { m_nameplateWidth = width; m_configNode["NameplateWidth"] = width; SaveSettings(); }
 	void SetShowGuild(bool show) { m_showGuild = show; m_configNode["ShowGuild"] = show; SaveSettings(); }
 	void SetShowPurpose(bool show) { m_showPurpose = show; m_configNode["ShowPurpose"] = show; SaveSettings(); }
@@ -77,16 +78,19 @@ public:
 	bool GetRenderForSelf() const { return m_renderForSelf; }
 	bool GetRenderForTarget() const { return m_renderForTarget; }
 	bool GetRenderForGroup() const { return m_renderForGroup; }
+	bool GetRenderForAllHaters() const { return m_renderForAllHaters; }
 	float GetNameplateWidth() const { return m_nameplateWidth; }
 	bool GetShowGuild() const { return m_showGuild; }
 	bool GetShowPurpose() const { return m_showPurpose; }
 	bool GetRenderToForeground() const { return m_renderToForeground; }
+	
 
 private:
 
 	bool m_renderForSelf = true;
 	bool m_renderForTarget = true;
 	bool m_renderForGroup = true;
+	bool m_renderForAllHaters = true;
 	bool m_showGuild = true;
 	bool m_showPurpose = true;
 	bool m_renderToForeground = true;

@@ -342,6 +342,10 @@ void Ui::RenderSettingsPanel()
 	if (ImGui::Checkbox("Render For Group", &renderForGroup))
 		Settings.SetRenderForGroup(renderForGroup);
 
+	bool renderForAllHaters = Settings.GetRenderForAllHaters();
+	if (ImGui::Checkbox("Render For All Haters", &renderForAllHaters))
+		Settings.SetRenderForAllHaters(renderForAllHaters);
+
 	bool showGuild = Settings.GetShowGuild();
 	if (ImGui::Checkbox("Show Guild", &showGuild))
 		Settings.SetShowGuild(showGuild);
@@ -388,6 +392,7 @@ void Ui::AnimatedNameplatesSettings::LoadSettings()
 		m_renderForSelf = m_configNode["RenderForSelf"].as<bool>(m_renderForSelf);
 		m_renderForTarget = m_configNode["RenderForTarget"].as<bool>(m_renderForTarget);
 		m_renderForGroup = m_configNode["RenderForGroup"].as<bool>(m_renderForGroup);
+		m_renderForAllHaters = m_configNode["RenderForAllHaters"].as<bool>(m_renderForAllHaters);
 		m_nameplateWidth = m_configNode["NameplateWidth"].as<float>(m_nameplateWidth);
 		m_showGuild = m_configNode["ShowGuild"].as<bool>(m_showGuild);
 		m_showPurpose = m_configNode["ShowPurpose"].as<bool>(m_showPurpose);

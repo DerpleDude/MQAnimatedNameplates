@@ -203,6 +203,27 @@ PLUGIN_API void OnUpdateImGui()
 					DrawNameplates(pGroupMember->GetPlayer());
 			}
 		}
+		if (Ui::Settings.GetRenderForAllHaters())
+		{
+			if (pLocalPC && pLocalPC->pXTargetMgr)
+			{
+				ExtendedTargetList* xtm = pLocalPC->pXTargetMgr;
+
+				for (int i = 0; i < xtm->GetNumSlots(); i++)
+				{
+					ExtendedTargetSlot* xts = xtm->GetSlot(i);
+
+					if (xts->SpawnID && xts->xTargetType == XTARGET_AUTO_HATER)
+					{
+						if (PlayerClient * pSpawn = GetSpawnByID(xts->SpawnID))
+						{
+							if (!pTarget || pSpawn->SpawnID != pTarget->SpawnID)
+								DrawNameplates(pSpawn);
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
