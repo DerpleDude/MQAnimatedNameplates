@@ -25,6 +25,9 @@ void DrawNameplates(PlayerClient* pSpawn)
 	if (!pSpawn)
 		return;
 
+	if (!LineOfSight(pControlledPlayer, pSpawn))
+		return;
+
 	const CVector3 targetPos(pSpawn->Y, pSpawn->X, pSpawn->Z + pSpawn->Height);
 	float targetNameplatePosX, targetNameplatePosY;
 
@@ -217,7 +220,7 @@ PLUGIN_API void OnUpdateImGui()
 					{
 						if (PlayerClient * pSpawn = GetSpawnByID(xts->SpawnID))
 						{
-							if (!pTarget || pSpawn->SpawnID != pTarget->SpawnID)
+							if (!Ui::Settings.GetRenderForTarget() || !pTarget || pSpawn->SpawnID != pTarget->SpawnID)
 								DrawNameplates(pSpawn);
 						}
 					}
