@@ -1,4 +1,5 @@
 ﻿#include "Ui.h"
+#include "Config.h"
 #include "eqlib/EQLib.h"
 #include "imgui/ImGuiUtils.h"
 #include "mq/imgui/Widgets.h"
@@ -11,9 +12,7 @@
 
 using namespace eqlib;
 
-Ui::AnimatedNameplatesSettings Ui::Settings;
-
-Ui::StateStruct Ui::State;
+Ui::ProgressBarStateStruct Ui::ProgressBarState;
 
 static float GetUIDeltaTime()
 {
@@ -58,7 +57,7 @@ void Ui::RenderNamePlateRect(CursorState& cursor, const ImVec2& size, ImU32 colo
 void Ui::DrawInspectableSpellIcon(CursorState& cursor, EQ_Spell* pSpell)
 {
     const ImVec2& cursorPos = cursor.GetPos();
-    ImVec2        size(Settings.GetIconSize(), Settings.GetIconSize());
+    ImVec2        size(Config::Get().IconSize, Config::Get().IconSize);
     ImVec2        max(cursorPos + size);
 
     ImDrawList* dl    = Ui::GetDrawList();
@@ -83,7 +82,7 @@ void Ui::DrawInspectableSpellIcon(CursorState& cursor, EQ_Spell* pSpell)
 
 void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, const float barPct, const float height,
                                   const float width, ImU32 colLow, ImU32 colMid, ImU32 colHigh, ImU32 colHighlight,
-                                  const std::string& label /* = "" */)
+                                  const std::string& label /* = "" */, bool currentTarget /* = false */)
 {
     float targetPct = std::clamp(barPct, 0.0f, 100.0f);
 
@@ -91,7 +90,7 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
     float       now      = static_cast<float>(ImGui::GetTime());
     ImDrawList* drawList = Ui::GetDrawList();
 
-    AnimState& animState = State.ProgBarAnimState[id];
+    AnimationState& animState = ProgressBarState.ProgBarAnimState[id];
 
     if (animState.lastTarget == 0)
         animState.lastTarget = targetPct;
@@ -105,7 +104,7 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
 
     float fraction = pct / 100.0f;
 
-    TrendState& trend = State.ProgBarTrendState[id];
+    AnimatedTrendState& trend = ProgressBarState.ProgBarTrendState[id];
 
     if (trend.lastPct == 0)
     {
@@ -136,10 +135,10 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
     ImU32 bgBottom = IM_COL32(10, 13, 20, 247);
 
     AddRectFilledMultiColorRounded(*drawList, ImVec2(minX + 1, minY + 1), ImVec2(maxX - 1, maxY - 1), bgTop, bgTop,
-                                   bgBottom, bgBottom, Settings.GetBarRounding(), 0);
+                                   bgBottom, bgBottom, Config::Get().BarRounding, 0);
 
     drawList->AddRectFilled(ImVec2(minX + 1, minY + 1), ImVec2(maxX - 1, minY + std::max(2.0f, barH * 0.35f)),
-                            IM_COL32(255, 255, 255, 14), Settings.GetBarRounding());
+                            IM_COL32(255, 255, 255, 14), Config::Get().BarRounding);
 
     float fillWidth = barW * fraction;
 
@@ -172,7 +171,8 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
 
         float fillMaxX = minX + fillWidth;
 
-        float fillRounding = std::min(Settings.GetBarRounding(), std::min(barH * 0.5f, fillWidth * 0.5f));
+        float fillRounding =
+            std::min(static_cast<float>(Config::Get().BarRounding), std::min(barH * 0.5f, fillWidth * 0.5f));
 
         drawList->AddRectFilled(ImVec2(minX, minY), ImVec2(fillMaxX, maxY), colLow, fillRounding);
 
@@ -184,7 +184,7 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
         if (innerMaxX > innerMinX && innerMaxY > innerMinY)
         {
             AddRectFilledMultiColorRounded(*drawList, ImVec2(innerMinX, innerMinY), ImVec2(innerMaxX, innerMaxY),
-                                           topLeft, topRight, bottomRight, bottomLeft, Settings.GetBarRounding(), 0);
+                                           topLeft, topRight, bottomRight, bottomLeft, Config::Get().BarRounding, 0);
 
             float glossMaxY = std::min(innerMaxY, minY + std::max(2.0f, barH * 0.45f));
 
@@ -193,7 +193,7 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
                 AddRectFilledMultiColorRounded(*drawList, ImVec2(innerMinX, innerMinY), ImVec2(innerMaxX, glossMaxY),
                                                IM_COL32(255, 255, 255, 14), IM_COL32(255, 255, 255, 8),
                                                IM_COL32(255, 255, 255, 2), IM_COL32(255, 255, 255, 8),
-                                               Settings.GetBarRounding(), 0);
+                                               Config::Get().BarRounding, 0);
             }
         }
 
@@ -222,18 +222,18 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
                                                IM_COL32(255, 255, 255, 0),
                                                IM_COL32(255, 255, 255, static_cast<int>(sheenAlpha * 255)),
                                                IM_COL32(255, 255, 255, static_cast<int>((sheenAlpha * 0.55f) * 255)),
-                                               IM_COL32(255, 255, 255, 0), Settings.GetBarRounding(), 0);
+                                               IM_COL32(255, 255, 255, 0), Config::Get().BarRounding, 0);
 
                 AddRectFilledMultiColorRounded(*drawList, ImVec2(sheenMid, minY), ImVec2(sheenRight, maxY),
                                                IM_COL32(255, 255, 255, static_cast<int>(sheenAlpha * 255)),
                                                IM_COL32(255, 255, 255, 0), IM_COL32(255, 255, 255, 0),
                                                IM_COL32(255, 255, 255, static_cast<int>((sheenAlpha * 0.55f) * 255)),
-                                               Settings.GetBarRounding(), 0);
+                                               Config::Get().BarRounding, 0);
             }
         }
     }
 
-    int hpTicks = 100 / Ui::Settings.GetHPTicks();
+    int hpTicks = 100 / Ui::Config::Get().HPTicks;
 
     for (int i = 1; i < hpTicks; ++i)
     {
@@ -246,8 +246,21 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
                           IM_COL32(255, 255, 255, static_cast<int>((reached ? 0.3 : 0.15) * 255)), 1.0f);
     }
 
-    drawList->AddRect(ImVec2(minX, minY), ImVec2(maxX, maxY), colHighlight, Settings.GetBarRounding(), 0,
-                      Settings.GetBarBorderThickness());
+    // draw some wings or something if this is our target.
+    if (currentTarget)
+    {
+        int lines = static_cast<int>(floor(barH / 4) + 1);
+
+        for (int i = 0; i < lines; i++)
+        {
+            float y = minY + 1 + i * 4;
+            drawList->AddLine(ImVec2(maxX, y), ImVec2(maxX + 15 * (i + 1), y), colHigh, 1.0f);
+            drawList->AddLine(ImVec2(minX, y), ImVec2(minX - 15 * (i + 1), y), colHigh, 1.0f);
+        }
+    }
+
+    drawList->AddRect(ImVec2(minX, minY), ImVec2(maxX, maxY), colHighlight, Config::Get().BarRounding, 0,
+                      Config::Get().BarBorderThickness);
 
     std::string text = label.empty() ? std::to_string((int)std::floor(pct + 0.5f)) + "%" : label;
 
@@ -263,8 +276,7 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
 }
 
 void Ui::RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPct, float height, float width,
-                          ImU32 conColor, bool currentTarget, const std::string& label,
-                          Ui::AnimatedNameplatesSettings::HPBarStyle style)
+                          ImU32 conColor, bool currentTarget, const std::string& label, Ui::HPBarStyle style)
 {
     ImU32 hpLow  = IM_COL32(floor(0.8f * 255), floor(0.2f * 255), floor(0.2f * 255), 255);
     ImU32 hpMid  = IM_COL32(floor(0.9f * 255), floor(0.7f * 255), floor(0.2f * 255), 255);
@@ -274,20 +286,21 @@ void Ui::RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPc
 
     switch (style)
     {
-    case AnimatedNameplatesSettings::HPBarStyle_SolidRed:
+    case HPBarStyle_SolidRed:
         hpLow = hpMid = hpHigh = IM_COL32(floor(0.8f * 255), floor(0.2f * 255), floor(0.2f * 255), 255);
         highlightColor         = currentTarget ? IM_COL32(255, 128, 0, 255) : IM_COL32(240, 80, 240, 255);
         break;
-    case AnimatedNameplatesSettings::HPBarStyle_ConColor:
+    case HPBarStyle_ConColor:
         hpLow = hpMid = hpHigh = conColor;
         highlightColor         = currentTarget ? IM_COL32(255, 128, 0, 255) : IM_COL32(240, 80, 240, 255);
         break;
-    case AnimatedNameplatesSettings::HPBarStyle_ColorRange:
+    case HPBarStyle_ColorRange:
     default:
         break;
     }
 
-    RenderAnimatedPercentage(cursor, id, hpPct, height, width, hpLow, hpMid, hpHigh, highlightColor, label);
+    RenderAnimatedPercentage(cursor, id, hpPct, height, width, hpLow, hpMid, hpHigh, highlightColor, label,
+                             currentTarget);
 }
 
 void Ui::AnimatedCheckmark::Reset(bool newVal)
@@ -578,7 +591,7 @@ bool Ui::AnimatedSlider(const std::string& label, float* slider_value, float sli
     return changed;
 }
 
-std::map<ImU32, AnimatedComboState> comboAnimTimes;
+std::map<ImU32, Ui::AnimatedComboState> comboAnimTimes;
 
 bool Ui::AnimatedCombo(const std::string& label, int* value, std::vector<std::string> items)
 {
@@ -593,7 +606,7 @@ bool Ui::AnimatedCombo(const std::string& label, int* value, std::vector<std::st
 
     int item_count = items.size();
 
-    auto [it, inserted] = comboAnimTimes.try_emplace(animId, AnimatedComboState());
+    auto [it, inserted] = comboAnimTimes.try_emplace(animId, Ui::AnimatedComboState());
     auto& animState     = it->second;
     bool  valueStart    = *value;
 
@@ -702,122 +715,130 @@ void Ui::RenderSettingsPanel()
         {0, "Targeting",
          []()
          {
-             bool renderForSelf = Settings.GetRenderForSelf();
+             bool renderForSelf = Config::Get().RenderForSelf;
              if (Ui::AnimatedCheckbox("Render For Self", &renderForSelf))
-                 Settings.SetRenderForSelf(renderForSelf);
+             {
+                 Config::Get().RenderForSelf = renderForSelf;
+             }
 
-             bool renderForGroup = Settings.GetRenderForGroup();
+             bool renderForGroup = Config::Get().RenderForGroup;
              if (Ui::AnimatedCheckbox("Render For Group", &renderForGroup))
-                 Settings.SetRenderForGroup(renderForGroup);
+             {
+                 Config::Get().RenderForGroup = renderForGroup;
+             }
 
-             bool renderForTarget = Settings.GetRenderForTarget();
+             bool renderForTarget = Config::Get().RenderForTarget;
              if (Ui::AnimatedCheckbox("Render For Target", &renderForTarget))
-                 Settings.SetRenderForTarget(renderForTarget);
+             {
+                 Config::Get().RenderForTarget = renderForTarget;
+             }
 
-             bool renderForAllHaters = Settings.GetRenderForAllHaters();
+             bool renderForAllHaters = Config::Get().RenderForAllHaters;
              if (Ui::AnimatedCheckbox("Render For All Haters", &renderForAllHaters))
-                 Settings.SetRenderForAllHaters(renderForAllHaters);
+             {
+                 Config::Get().RenderForAllHaters = renderForAllHaters;
+             }
          }},
         {1, "Look and Feel",
          []()
          {
-             Ui::AnimatedNameplatesSettings::HPBarStyle hpBarStyle = Settings.GetHPBarStyleSelf();
+             Ui::HPBarStyle hpBarStyle = static_cast<Ui::HPBarStyle>(Config::Get().HPBarStyleSelf.get());
              if (Ui::AnimatedCombo("Self HP Bar Style", reinterpret_cast<int*>(&hpBarStyle),
                                    {"Solid Red", "Con Color", "Color Range"}))
-                 Settings.SetHPBarStyleSelf(hpBarStyle);
+                 Config::Get().HPBarStyleSelf = hpBarStyle;
 
-             hpBarStyle = Settings.GetHPBarStyleGroup();
+             hpBarStyle = static_cast<Ui::HPBarStyle>(Config::Get().HPBarStyleGroup.get());
              if (Ui::AnimatedCombo("Group HP Bar Style", reinterpret_cast<int*>(&hpBarStyle),
                                    {"Solid Red", "Con Color", "Color Range"}))
-                 Settings.SetHPBarStyleGroup(hpBarStyle);
+                 Config::Get().HPBarStyleGroup = hpBarStyle;
 
-             hpBarStyle = Settings.GetHPBarStyleTarget();
+             hpBarStyle = static_cast<Ui::HPBarStyle>(Config::Get().HPBarStyleTarget.get());
              if (Ui::AnimatedCombo("Target HP Bar Style", reinterpret_cast<int*>(&hpBarStyle),
                                    {"Solid Red", "Con Color", "Color Range"}))
-                 Settings.SetHPBarStyleTarget(hpBarStyle);
+                 Config::Get().HPBarStyleTarget = hpBarStyle;
 
-             hpBarStyle = Settings.GetHPBarStyleHaters();
+             hpBarStyle = static_cast<Ui::HPBarStyle>(Config::Get().HPBarStyleHaters.get());
              if (Ui::AnimatedCombo("Auto Haters HP Bar Style", reinterpret_cast<int*>(&hpBarStyle),
                                    {"Solid Red", "Con Color", "Color Range"}))
-                 Settings.SetHPBarStyleHaters(hpBarStyle);
+                 Config::Get().HPBarStyleHaters = hpBarStyle;
 
              ImGui::NewLine();
 
-             bool showClass = Settings.GetShowClass();
+             bool showClass = Config::Get().ShowClass;
              if (Ui::AnimatedCheckbox("Show Class", &showClass))
-                 Settings.SetShowClass(showClass);
+                 Config::Get().ShowClass = showClass;
 
-             bool shortClassName = Settings.GetShortClassName();
+             bool shortClassName = Config::Get().ShortClassName;
              if (Ui::AnimatedCheckbox("Short Class Name", &shortClassName))
-                 Settings.SetShortClassName(shortClassName);
+                 Config::Get().ShortClassName = shortClassName;
 
-             bool showLevel = Settings.GetShowLevel();
+             bool showLevel = Config::Get().ShowLevel;
              if (Ui::AnimatedCheckbox("Show Level", &showLevel))
-                 Settings.SetShowLevel(showLevel);
+                 Config::Get().ShowLevel = showLevel;
 
-             bool showGuild = Settings.GetShowGuild();
+             bool showGuild = Config::Get().ShowGuild;
              if (Ui::AnimatedCheckbox("Show Guild", &showGuild))
-                 Settings.SetShowGuild(showGuild);
+                 Config::Get().ShowGuild = showGuild;
 
-             bool showPurpose = Settings.GetShowPurpose();
+             bool showPurpose = Config::Get().ShowPurpose;
              if (Ui::AnimatedCheckbox("Show Purpose", &showPurpose))
-                 Settings.SetShowPurpose(showPurpose);
+                 Config::Get().ShowPurpose = showPurpose;
 
-             bool showBuffIcons = Settings.GetShowBuffIcons();
+             bool showBuffIcons = Config::Get().ShowBuffIcons;
              if (Ui::AnimatedCheckbox("Show Buff Icons", &showBuffIcons))
-                 Settings.SetShowBuffIcons(showBuffIcons);
+                 Config::Get().ShowBuffIcons = showBuffIcons;
          }},
         {2, "Size & Positioning",
          []()
          {
              float       sliderLabelWidth      = ImGui::CalcTextSize("Nameplate Height Offset").x;
              const char* valueFormat           = "%.1f";
-             float       nameplateHeightOffset = Settings.GetNameplateHeightOffset();
+             float       nameplateHeightOffset = Config::Get().NameplateHeightOffset;
              if (Ui::AnimatedSlider("Nameplate Height Offset", &nameplateHeightOffset, 0.0f, 300.0f, valueFormat,
                                     sliderLabelWidth))
-                 Settings.SetNameplateHeightOffset(nameplateHeightOffset);
+                 Config::Get().NameplateHeightOffset = nameplateHeightOffset;
 
-             float nameplateWidth = Settings.GetNameplateWidth();
+             float nameplateWidth = Config::Get().NameplateWidth;
              if (Ui::AnimatedSlider("Nameplate Width", &nameplateWidth, 25.0f, 800.0f, valueFormat, sliderLabelWidth))
-                 Settings.SetNameplateWidth(nameplateWidth);
+                 Config::Get().NameplateWidth = nameplateWidth;
 
-             float hpTicks = static_cast<float>(Settings.GetHPTicks());
+             float hpTicks = static_cast<float>(Config::Get().HPTicks);
              if (Ui::AnimatedSlider("HP Ticks Every [x] %", &hpTicks, 1, 25, "%.0f", sliderLabelWidth))
-                 Settings.SetHPTicks(static_cast<int>(hpTicks));
+                 Config::Get().HPTicks = static_cast<int>(hpTicks);
 
-             float fontSize = Settings.GetFontSize();
+             float fontSize = Config::Get().FontSize;
              if (Ui::AnimatedSlider("Font Size", &fontSize, 1.0f, 40.0f, valueFormat, sliderLabelWidth))
-                 Settings.SetFontSize(fontSize);
+                 Config::Get().FontSize = fontSize;
 
-             float iconSize = Settings.GetIconSize();
+             float iconSize = Config::Get().IconSize;
              if (Ui::AnimatedSlider("Icon Size", &iconSize, 10.0f, 40.0f, valueFormat, sliderLabelWidth))
-                 Settings.SetIconSize(iconSize);
+                 Config::Get().IconSize = iconSize;
 
-             float barRounding = Settings.GetBarRounding();
+             float barRounding = Config::Get().BarRounding;
              if (Ui::AnimatedSlider("Bar Rounding", &barRounding, 0.0f, 10.0f, valueFormat, sliderLabelWidth))
-                 Settings.SetBarRounding(barRounding);
+                 Config::Get().BarRounding = barRounding;
 
-             float barBorderThickness = Settings.GetBarBorderThickness();
+             float barBorderThickness = Config::Get().BarBorderThickness;
              if (Ui::AnimatedSlider("Bar Border Thickness", &barBorderThickness, 0.0f, 5.0f, valueFormat,
                                     sliderLabelWidth))
-                 Settings.SetBarBorderThickness(barBorderThickness);
+                 Config::Get().BarBorderThickness = barBorderThickness;
 
              ImGui::NewLine();
 
-             bool renderToForeground = Settings.GetRenderToForeground();
+             bool renderToForeground = Config::Get().RenderToForeground;
              if (Ui::AnimatedCheckbox("Always on Top", &renderToForeground))
-                 Settings.SetRenderToForeground(renderToForeground);
+                 Config::Get().RenderToForeground = renderToForeground;
 
-             bool renderNoLOS = Settings.GetRenderNoLOS();
+             bool renderNoLOS = Config::Get().RenderNoLOS;
              if (Ui::AnimatedCheckbox("Render Even When Occluded", &renderNoLOS))
-                 Settings.SetRenderNoLOS(renderNoLOS);
+                 Config::Get().RenderNoLOS = renderNoLOS;
          }},
         {3, "Dev & Debug",
          []()
          {
-             bool showDebugPanel = Settings.GetShowDebugPanel();
+             bool showDebugPanel = Config::Get().ShowDebugPanel;
              if (Ui::AnimatedCheckbox("Show Debug Panel", &showDebugPanel))
-                 Settings.SetShowDebugPanel(showDebugPanel);
+                 Config::Get().ShowDebugPanel = showDebugPanel;
          }},
     };
 
@@ -882,7 +903,7 @@ void Ui::RenderSettingsPanel()
                       4.0f);
 
     // Content area with fade
-    ImVec2 content_pos(tabs_pos.x, tabs_pos.y + tab_height + Ui::Settings.GetPadding().y);
+    ImVec2 content_pos(tabs_pos.x, tabs_pos.y + tab_height + Ui::Config::Get().PaddingY);
     ImVec2 content_size(total_width, ImGui::GetContentRegionAvail().y);
 
     dl->AddRectFilled(content_pos, ImVec2(content_pos.x + content_size.x, content_pos.y + content_size.y),
@@ -892,96 +913,19 @@ void Ui::RenderSettingsPanel()
     float content_alpha = iam_tween_float(id, ImHashStr("animmp_content"), 1.0f, 0.2f,
                                           iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt);
 
-    ImGui::SetCursorScreenPos(ImVec2(tabs_pos.x, content_pos.y + Ui::Settings.GetPadding().y * 2.0f));
-    ImGui::Indent(Ui::Settings.GetPadding().x);
+    ImGui::SetCursorScreenPos(ImVec2(tabs_pos.x, content_pos.y + Ui::Config::Get().PaddingY * 2.0f));
+    ImGui::Indent(Ui::Config::Get().PaddingX);
     tabs[active_tab].content();
-    ImGui::Unindent(Ui::Settings.GetPadding().x);
+    ImGui::Unindent(Ui::Config::Get().PaddingX);
 
-    ImGui::SetCursorScreenPos(ImVec2(tabs_pos.x, content_pos.y + content_size.y + Ui::Settings.GetPadding().y));
+    ImGui::SetCursorScreenPos(ImVec2(tabs_pos.x, content_pos.y + content_size.y + Config::Get().PaddingY));
     ImGui::Dummy(ImVec2(0.0f, 0.0f));
     ImGui::EndChild();
 }
 
-void Ui::AnimatedNameplatesSettings::LoadSettings()
-{
-    m_configFile = (std::filesystem::path(gPathConfig) / "MQAnimatedNameplates.yaml").string();
-
-    try
-    {
-        m_configNode = YAML::LoadFile(m_configFile);
-
-        m_showBuffIcons         = m_configNode["ShowBuffIcons"].as<bool>(m_showBuffIcons);
-        m_showDebugPanel        = m_configNode["ShowDebugPanel"].as<bool>(m_showDebugPanel);
-        m_fontSize              = m_configNode["FontSize"].as<float>(m_fontSize);
-        m_iconSize              = m_configNode["IconSize"].as<float>(m_iconSize);
-        m_barRounding           = m_configNode["BarRounding"].as<float>(m_barRounding);
-        m_barBorderThickness    = m_configNode["BarBorderThickness"].as<float>(m_barBorderThickness);
-        m_renderForSelf         = m_configNode["RenderForSelf"].as<bool>(m_renderForSelf);
-        m_renderForTarget       = m_configNode["RenderForTarget"].as<bool>(m_renderForTarget);
-        m_renderForGroup        = m_configNode["RenderForGroup"].as<bool>(m_renderForGroup);
-        m_renderForAllHaters    = m_configNode["RenderForAllHaters"].as<bool>(m_renderForAllHaters);
-        m_renderNoLOS           = m_configNode["RenderNoLOS"].as<bool>(m_renderNoLOS);
-        m_nameplateWidth        = m_configNode["NameplateWidth"].as<float>(m_nameplateWidth);
-        m_showGuild             = m_configNode["ShowGuild"].as<bool>(m_showGuild);
-        m_showPurpose           = m_configNode["ShowPurpose"].as<bool>(m_showPurpose);
-        m_renderToForeground    = m_configNode["RenderToForeground"].as<bool>(m_renderToForeground);
-        m_shortClassName        = m_configNode["ShortClassName"].as<bool>(m_shortClassName);
-        m_showClass             = m_configNode["ShowClass"].as<bool>(m_showClass);
-        m_showLevel             = m_configNode["ShowLevel"].as<bool>(m_showLevel);
-        m_nameplateHeightOffset = m_configNode["NameplateHeightOffset"].as<float>(m_nameplateHeightOffset);
-        m_hpBarStyleSelf =
-            static_cast<HPBarStyle>(m_configNode["HPBarStyleSelf"].as<int>(static_cast<int>(m_hpBarStyleSelf)));
-        m_hpBarStyleGroup =
-            static_cast<HPBarStyle>(m_configNode["HPBarStyleGroup"].as<int>(static_cast<int>(m_hpBarStyleGroup)));
-        m_hpBarStyleTarget =
-            static_cast<HPBarStyle>(m_configNode["HPBarStyleTarget"].as<int>(static_cast<int>(m_hpBarStyleTarget)));
-        m_hpBarStyleHaters =
-            static_cast<HPBarStyle>(m_configNode["HPBarStyleHaters"].as<int>(static_cast<int>(m_hpBarStyleHaters)));
-        m_hpTicks = m_configNode["HPTicks"].as<int>(m_hpTicks);
-
-        m_padding =
-            ImVec2(m_configNode["PaddingX"].as<float>(m_padding.x), m_configNode["PaddingY"].as<float>(m_padding.y));
-    }
-    catch (const YAML::ParserException& ex)
-    {
-        // failed to parse, notify and return
-        SPDLOG_ERROR("Failed to parse YAML in {}: {}", m_configFile, ex.what());
-        return;
-    }
-    catch (const YAML::BadFile&)
-    {
-        // if we can't read the file, then try to write it with an empty config
-        SaveSettings();
-        return;
-    }
-}
-
-void Ui::AnimatedNameplatesSettings::SaveSettings()
-{
-    try
-    {
-        std::fstream file(m_configFile, std::ios::out);
-
-        if (!m_configNode.IsNull())
-        {
-            YAML::Emitter y_out;
-            y_out.SetIndent(4);
-            y_out.SetFloatPrecision(2);
-            y_out.SetDoublePrecision(2);
-            y_out << m_configNode;
-
-            file << y_out.c_str();
-        }
-    }
-    catch (const std::exception&)
-    {
-        SPDLOG_ERROR("Failed to write settings file: {}", m_configFile);
-    }
-}
-
 ImDrawList* Ui::GetDrawList()
 {
-    return Ui::Settings.GetRenderToForeground() ? ImGui::GetForegroundDrawList() : ImGui::GetBackgroundDrawList();
+    return Ui::Config::Get().RenderToForeground ? ImGui::GetForegroundDrawList() : ImGui::GetBackgroundDrawList();
 }
 
 // Helpers from imgui_draw.cpp
