@@ -245,7 +245,7 @@ protected:
 template <typename T>
 class ConfigVariable;
 
-template <typename T> requires (std::is_integral_v<T> || std::is_floating_point_v<T>) && !std::is_same_v<T, bool>
+template <typename T> requires (std::is_integral_v<T> || std::is_floating_point_v<T>) && (!std::is_same_v<T, bool>)
 class ConfigVariable<T> : public NumericConfigVariable<T>
 {
     using NumericConfigVariable<T>::NumericConfigVariable;

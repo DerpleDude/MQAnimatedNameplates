@@ -11,6 +11,8 @@
 #include "Ui.h"
 
 #include "eqlib/graphics/CameraInterface.h"
+#include "eqlib/graphics/Bones.h"
+#include "eqlib/graphics/Actors.h"
 #include "mq/Plugin.h"
 #include "mq/imgui/ImGuiUtils.h"
 
@@ -24,6 +26,68 @@ PLUGIN_VERSION(0.1);
 
 iam_context* context = nullptr;
 
+static bool GetNameplatePositionFromSpawnPosition(PlayerClient* pSpawn, ImVec2& outCoords)
+{
+    const CVector3 targetPos(pSpawn->Y, pSpawn->X, pSpawn->Z + pSpawn->Height);
+    float outPosX, outPosY;
+
+    if (pDisplay->pCamera->ProjectWorldCoordinatesToScreen(targetPos, outPosX, outPosY))
+    {
+        outCoords = ImVec2{ outPosX, outPosY };
+        return true;
+    }
+
+    return false;
+}
+
+static bool GetNameplatePositionFromBones(PlayerClient* pSpawn, ImVec2& outCoords)
+{
+    if (CActorInterface* pActor = pSpawn->mActorClient.pActor)
+    {
+        if (CEQBone* bone = static_cast<CEQBone*>(pActor->GetBoneByIndex(eBoneHead)))
+        {
+            // CNameStringSprite::SetAttachBone
+
+            std::string_view tag = bone->GetTag();
+            float multiplier = 1.55f;
+
+            if (mq::string_equals("HEAD_NAME", tag))
+            {
+                multiplier = 0.0f;
+            }
+            else if (tag.length() > 5 && tag[5] == 'H')
+            {
+                if (tag[0] == 'O' && tag[1] == 'G')
+                {
+                    multiplier = 2.2f;
+                }
+                else
+                {
+                    multiplier = 2.1f;
+                }
+            }
+
+            float scale = std::max(pActor->GetScaleFactor(), 1.0f);
+            if (scale > 1.0f)
+            {
+                scale = sqrtf(scale);
+            }
+
+            const CMatrix44& mtx = bone->m_attachmentMatrix;
+            CVector3 pos = CVector3(mtx.row[3].X, mtx.row[3].Y, mtx.row[3].Z + (scale * multiplier));
+            float outPosX, outPosY;
+
+            if (pDisplay->pCamera->ProjectWorldCoordinatesToScreen(pos, outPosX, outPosY))
+            {
+                outCoords = ImVec2{ outPosX, outPosY };
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
 {
     if (!pSpawn)
@@ -32,35 +96,32 @@ void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
     if (!LineOfSight(pControlledPlayer, pSpawn))
         return;
 
-    const CVector3 targetPos(pSpawn->Y, pSpawn->X, pSpawn->Z + pSpawn->Height);
-    float          targetNameplatePosX, targetNameplatePosY;
+    ImVec2 targetNameplatePos;
+    if (!GetNameplatePositionFromBones(pSpawn, targetNameplatePos))
+        return;
 
-    pDisplay->pCamera->ProjectWorldCoordinatesToScreen(targetPos, targetNameplatePosX, targetNameplatePosY);
-    if (targetNameplatePosY <= 75)
-        targetNameplatePosY = 75; // move off-screen if above a certain height so it doesn't draw in the middle of the
-                                  // screen when looking up at something.
-    const ImVec2 targetNameplatePos{targetNameplatePosX, targetNameplatePosY};
+    Ui::Config& config = Ui::Config::Get();
 
     ImVec2 targetNameplateTopLeft{FLT_MAX, FLT_MAX};
     ImVec2 targetNameplateBottomRight{0.0f, 0.0f};
 
-    ImGui::PushFont(nullptr, Ui::Config::Get().FontSize);
+    ImGui::PushFont(nullptr, config.FontSize);
 
-    ImVec2 canvasSize(Ui::Config::Get().NameplateWidth, 50);
-    ImVec2 baseHeadOffset{0, Ui::Config::Get().NameplateHeightOffset};
+    ImVec2 canvasSize(config.NameplateWidth, 50);
+    ImVec2 baseHeadOffset{0, config.NameplateHeightOffset};
 
     ImVec2 padding = ImGui::GetStyle().FramePadding;
 
     // only render for target.
-    if (Ui::Config::Get().ShowBuffIcons && pTarget == pSpawn)
+    if (config.ShowBuffIcons && pTarget == pSpawn)
     {
-        int buffsPerRow = std::max(1, static_cast<int>(floorf(canvasSize.x / (Ui::Config::Get().IconSize + padding.x))));
+        int buffsPerRow = std::max(1, static_cast<int>(floorf(canvasSize.x / (config.IconSize + padding.x))));
 
-        int buffCount = Ui::Config::Get().ShowBuffIcons ? GetCachedBuffCount(pSpawn) : 0;
+        int buffCount = config.ShowBuffIcons ? GetCachedBuffCount(pSpawn) : 0;
 
         float numBuffRows = ceilf(buffCount / static_cast<float>(buffsPerRow));
 
-        float verticalOffset = numBuffRows * (Ui::Config::Get().IconSize + padding.y);
+        float verticalOffset = numBuffRows * (config.IconSize + padding.y);
 
         ImVec2 assumedHeadOffset(0, baseHeadOffset.y + verticalOffset);
         ImVec2 curPos = targetNameplatePos - canvasSize * 0.5f - assumedHeadOffset;
@@ -89,9 +150,9 @@ void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
             targetNameplateTopLeft.x = std::min(targetNameplateTopLeft.x, cursor.GetPos().x);
             targetNameplateTopLeft.y = std::min(targetNameplateTopLeft.y, cursor.GetPos().y);
             targetNameplateBottomRight.x =
-                std::max(targetNameplateBottomRight.x, cursor.GetPos().x + Ui::Config::Get().IconSize);
+                std::max(targetNameplateBottomRight.x, cursor.GetPos().x + config.IconSize);
             targetNameplateBottomRight.y =
-                std::max(targetNameplateBottomRight.y, cursor.GetPos().y + Ui::Config::Get().IconSize);
+                std::max(targetNameplateBottomRight.y, cursor.GetPos().y + config.IconSize);
         }
     }
 
@@ -130,7 +191,7 @@ void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
     float levelWidth = ImGui::CalcTextSize(targetLevel.c_str()).x;
     curPos.x = (startXPos + canvasSize.x) - (levelWidth + padding.x * 2);
 
-    if (Ui::Config::Get().ShowLevel)
+    if (config.ShowLevel)
     {
         cursor.SetPos(curPos);
         Ui::RenderNamePlateText(cursor, textColor, targetLevel.c_str());
@@ -139,39 +200,40 @@ void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
     //
     // Class
     //
-    std::string overRideClassName;
-    if (pSpawn->GetClass() < 1 || pSpawn->GetClass() > 16)
-        overRideClassName = "???";
 
-    std::string classInfo      = Ui::Config::Get().ShowClass
-                                     ? fmt::format("{}", Ui::Config::Get().ShortClassName
-                                                             ? overRideClassName.length() > 0
-                                                                   ? overRideClassName
-                                                                   : pEverQuest->GetClassThreeLetterCode(pSpawn->GetClass())
-                                                             : GetClassDesc(pSpawn->GetClass()))
-                                     : "";
-    float       classInfoWidth = ImGui::CalcTextSize(classInfo.c_str()).x;
+    if (config.ShowClass)
+    {
+        std::string classInfo;
 
-    // center this text
-    float classWidth = ImGui::CalcTextSize(classInfo.c_str()).x;
-    curPos.x = (startXPos + canvasSize.x / 2) - (classWidth / 2 + padding.x * 2);
-    cursor.SetPos(curPos);
+        if (pSpawn->GetClass() < 1 || pSpawn->GetClass() > 16)
+            classInfo = "???";
+        else if (config.ShortClassName)
+            classInfo = pEverQuest->GetClassThreeLetterCode(pSpawn->GetClass());
+        else
+            classInfo = GetClassDesc(pSpawn->GetClass());
 
-    if (curPos.x <= startXPos + displayNameWidth + padding.x * 2)
-        cursor.NewLine();
+        float classWidth = ImGui::CalcTextSize(classInfo.c_str()).x;
 
-    Ui::RenderNamePlateText(cursor, textColor, classInfo.c_str());
+        // center this text
+        curPos.x = (startXPos + canvasSize.x / 2) - (classWidth / 2 + padding.x * 2);
+        cursor.SetPos(curPos);
+
+        if (curPos.x <= startXPos + displayNameWidth + padding.x * 2)
+            cursor.NewLine();
+
+        Ui::RenderNamePlateText(cursor, textColor, classInfo.c_str());
+    }
 
     //
     // Detail
     //
 
     std::string targetDetail;
-    if (Ui::Config::Get().ShowPurpose && GetSpawnType(pSpawn) == NPC && pSpawn->Lastname[0])
+    if (config.ShowPurpose && GetSpawnType(pSpawn) == NPC && pSpawn->Lastname[0])
     {
         targetDetail = fmt::format("({})", pSpawn->Lastname);
     }
-    else if (Ui::Config::Get().ShowGuild && pGuild && pSpawn->GuildID > 0)
+    else if (config.ShowGuild && pGuild && pSpawn->GuildID > 0)
     {
         targetDetail = fmt::format("<{}>", pGuild->GetGuildName(pSpawn->GuildID));
     }
@@ -210,9 +272,11 @@ void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
         std::max(targetNameplateBottomRight.y, cursor.GetPos().y + ImGui::GetTextLineHeight());
 
     cursor.SetPos(targetNameplateTopLeft);
-    if (Ui::Config::Get().ShowDebugPanel)
-        Ui::RenderNamePlateRect(cursor, targetNameplateBottomRight - targetNameplateTopLeft, IM_COL32(40, 240, 40, 55),
-                                3.0f, 1.0f, true);
+    if (config.ShowDebugPanel)
+    {
+        Ui::RenderNamePlateRect(cursor, targetNameplateBottomRight - targetNameplateTopLeft,
+            IM_COL32(40, 240, 40, 55), 3.0f, 1.0f, true);
+    }
 
     ImVec2 mouse   = ImGui::GetIO().MousePos;
     bool   hovered = mouse.x >= targetNameplateTopLeft.x && mouse.x <= targetNameplateBottomRight.x &&
@@ -247,22 +311,42 @@ PLUGIN_API void OnUpdateImGui()
         if (!pDisplay)
             return;
 
-        if (Ui::Config::Get().RenderForTarget)
-            DrawNameplates(pTarget, static_cast<Ui::HPBarStyle>(Ui::Config::Get().HPBarStyleTarget.get()));
-        if (Ui::Config::Get().RenderForSelf)
-            DrawNameplates(pLocalPlayer, static_cast<Ui::HPBarStyle>(Ui::Config::Get().HPBarStyleSelf.get()));
-        if (Ui::Config::Get().RenderForGroup && pLocalPC->pGroupInfo)
+        Ui::Config& config = Ui::Config::Get();
+
+        if (config.RenderForTarget)
+            DrawNameplates(pTarget, config.HPBarStyleTarget.get());
+        if (config.RenderForSelf)
+            DrawNameplates(pLocalPlayer, config.HPBarStyleSelf.get());
+        if (config.RenderForGroup && pLocalPC->pGroupInfo)
         {
             for (int i = 0; i < MAX_GROUP_SIZE; i++)
             {
                 CGroupMember* pGroupMember = pLocalPC->pGroupInfo->GetGroupMember(i);
-                if (pGroupMember && pGroupMember->GetPlayer() &&
-                    pGroupMember->GetPlayer()->SpawnID != pLocalPlayer->SpawnID)
-                    DrawNameplates(pGroupMember->GetPlayer(),
-                                   static_cast<Ui::HPBarStyle>(Ui::Config::Get().HPBarStyleGroup.get()));
+                if (pGroupMember && pGroupMember->GetPlayer()
+                    && pGroupMember->GetPlayer()->SpawnID != pLocalPlayer->SpawnID)
+                {
+                    DrawNameplates(pGroupMember->GetPlayer(), config.HPBarStyleGroup.get());
+                }
             }
         }
-        if (Ui::Config::Get().RenderForAllHaters)
+
+        if (config.RenderForNPCs)
+        {
+            PlayerClient* pSpawn = pSpawnManager->FirstSpawn;
+            while (pSpawn)
+            {
+                if (GetSpawnType(pSpawn) == NPC)
+                {
+                    if (!config.RenderForTarget || !pTarget || pSpawn->SpawnID != pTarget->SpawnID)
+                    {
+                        DrawNameplates(pSpawn, config.HPBarStyleNPCs.get());
+                    }
+                }
+                
+                pSpawn = pSpawn->GetNext();
+            }
+        }
+        else if (config.RenderForAllHaters)
         {
             if (pLocalPC)
             {
@@ -274,12 +358,11 @@ PLUGIN_API void OnUpdateImGui()
 
                     if (xts->SpawnID && xts->xTargetType == XTARGET_AUTO_HATER)
                     {
-                        if (!Ui::Config::Get().RenderForTarget || !pTarget || xts->SpawnID != pTarget->SpawnID)
+                        if (!config.RenderForTarget || !pTarget || xts->SpawnID != pTarget->SpawnID)
                         {
                             if (PlayerClient* pSpawn = GetSpawnByID(xts->SpawnID))
                             {
-                                DrawNameplates(pSpawn,
-                                               static_cast<Ui::HPBarStyle>(Ui::Config::Get().HPBarStyleHaters.get()));
+                                DrawNameplates(pSpawn, config.HPBarStyleHaters.get());
                             }
                         }
                     }
@@ -294,14 +377,22 @@ PLUGIN_API void OnPulse()
     Ui::Config::Get().SaveSettings();
 }
 
+PLUGIN_API void OnAddSpawn(PlayerClient* pSpawn)
+{
+}
+
+PLUGIN_API void OnRemoveSpawn(PlayerClient* pSpawn)
+{
+}
+
 sol::object DoCreateModule(sol::this_state s)
 {
     sol::state_view L(s);
 
     sol::table module = L.create_table();
 
-    module["ProjectWorldCoordinatesToScreen"] = [](sol::this_state L, const float x, const float y,
-                                                   const float z) -> ImVec2
+    module["ProjectWorldCoordinatesToScreen"] =
+        [](sol::this_state L, const float x, const float y, const float z) -> ImVec2
     {
         if (!pDisplay || !pDisplay->pCamera)
             return ImVec2(0, 0);

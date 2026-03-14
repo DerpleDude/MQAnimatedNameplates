@@ -830,10 +830,11 @@ public:
     {
         Ui::Config& config = Ui::Config::Get();
 
-        RenderOption(config.RenderForSelf, "Render For Self");
-        RenderOption(config.RenderForGroup, "Render For Group");
-        RenderOption(config.RenderForTarget, "Render For Target");
-        RenderOption(config.RenderForAllHaters, "Render For All Haters");
+        RenderOption(config.RenderForSelf, "Show For Self");
+        RenderOption(config.RenderForGroup, "Show For Group");
+        RenderOption(config.RenderForTarget, "Show For Target");
+        RenderOption(config.RenderForAllHaters, "Show For All Haters");
+        RenderOption(config.RenderForNPCs, "Show For All NPCs");
     }
 
     void DrawLookAndFeelTab()
@@ -844,7 +845,7 @@ public:
         RenderOption(config.HPBarStyleGroup, "Group HP Bar Style");
         RenderOption(config.HPBarStyleTarget, "Target HP Bar Style");
         RenderOption(config.HPBarStyleHaters, "Haters HP Bar Style");
-
+        RenderOption(config.HPBarStyleNPCs, "NPCs HP Bar Style");
         ImGui::NewLine();
 
         RenderOption(config.ShowClass, "Show Class");

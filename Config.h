@@ -54,6 +54,7 @@ public:
     ConfigVariable<bool> RenderForGroup{ m_container, "RenderForGroup", true };
     ConfigVariable<bool> RenderForTarget{ m_container, "RenderForTarget", true };
     ConfigVariable<bool> RenderForAllHaters{ m_container, "RenderForAllHaters", true };
+    ConfigVariable<bool> RenderForNPCs{ m_container, "RenderForNPCs", false };
 
     // Optional display
     ConfigVariable<bool> ShowGuild{ m_container, "ShowGuild", false };
@@ -92,6 +93,8 @@ public:
     ConfigVariable<HPBarStyle> HPBarStyleGroup{ m_container, "HPBarStyleGroup", HPBarStyle_ColorRange };
     ConfigVariable<HPBarStyle> HPBarStyleTarget{ m_container, "HPBarStyleTarget", HPBarStyle_ColorRange };
     ConfigVariable<HPBarStyle> HPBarStyleHaters{ m_container, "HPBarStyleHaters", HPBarStyle_ColorRange };
+    ConfigVariable<HPBarStyle> HPBarStyleNPCs{ m_container, "HPBarStyleNPCs", HPBarStyle_ColorRange };
+
 };
 
 } // namespace Ui
