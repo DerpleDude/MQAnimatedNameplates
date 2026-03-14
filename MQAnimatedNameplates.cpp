@@ -10,10 +10,12 @@
 #include "Ui.h"
 
 #include "eqlib/graphics/CameraInterface.h"
-#include "imgui/imgui.h"
 #include "mq/Plugin.h"
 #include "mq/imgui/ImGuiUtils.h"
 
+#include "imgui/imgui.h"
+#include "imgui/imanim/im_anim.h"
+#include "imgui_internal.h"
 #include "sol/sol.hpp"
 
 PreSetup("MQAnimatedNameplates");

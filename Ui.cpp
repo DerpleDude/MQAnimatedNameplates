@@ -1,5 +1,6 @@
 ﻿#include "Ui.h"
 #include "Config.h"
+#include "IndicatorBar.h"
 #include "eqlib/EQLib.h"
 
 #include "imgui/ImGuiUtils.h"
@@ -15,8 +16,8 @@
 using namespace eqlib;
 
 Ui::ProgressBarStateStruct Ui::ProgressBarState;
-Ui::IndicatorBar           indicatorBar1("frame1.png", "hp_filler_green.png");
-Ui::IndicatorBar           indicatorBar2("frame1.png", "");
+Ui::IndicatorBar indicatorBar1("frame1.png", "hp_filler_green.png");
+Ui::IndicatorBar indicatorBar2("frame1.png", "");
 
 void Ui::RenderNamePlateText(CursorState& cursor, ImU32 color, const char* text)
 {
@@ -861,7 +862,7 @@ public:
 
         ImGui::NewLine();
 
-        bool drawBarBorders = Config::Get().DrawBarBorders;
+        bool drawBarBorders = config.DrawBarBorders;
         if (Ui::AnimatedCheckbox("Draw Bar Borders", &drawBarBorders))
             config.DrawBarBorders = drawBarBorders;
 
@@ -884,11 +885,11 @@ public:
 
         ImGui::NewLine();
 
-        bool drawTestBar = Config::Get().DrawTestBar;
+        bool drawTestBar = config.DrawTestBar;
         if (Ui::AnimatedCheckbox("Draw Test Bar", &drawTestBar))
             config.DrawTestBar = drawTestBar;
 
-        float barPercent = Config::Get().BarPercent;
+        float barPercent = config.BarPercent;
         if (Ui::AnimatedSlider("Bar %", &barPercent, 0.0f, 100.0f, "%.0f", 200))
             config.BarPercent = barPercent;
     }

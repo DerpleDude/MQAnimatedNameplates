@@ -10,7 +10,7 @@ class Config
 {
     Config();
 
-  public:
+public:
     static Config& Get();
 
     Config(const Config&) = delete;
@@ -19,13 +19,13 @@ class Config
     void SaveSettings();
     void LoadSettings();
 
-  private:
+private:
     std::string m_configFile;
 
     // must come before the variables so that it's initialized when they register themselves in their constructors
     ConfigContainer m_container;
 
-  public:
+public:
     // Rendering toggles
     ConfigVariable<bool> RenderForSelf{ m_container, "RenderForSelf", true };
     ConfigVariable<bool> RenderForGroup{ m_container, "RenderForGroup", true };
@@ -40,7 +40,7 @@ class Config
     ConfigVariable<bool> ShortClassName{ m_container, "ShortClassName", true };
     ConfigVariable<bool> ShowTargetIndicatorWings{ m_container, "ShowTargetIndicatorWings", true };
     ConfigVariable<float> TargetIndicatorWingLength{ m_container, "TargetIndicatorWingLength", 15.0f };
-    ConfigVariable<bool>  DrawBarBorders{ m_container, "DrawBarBorders", true };
+    ConfigVariable<bool> DrawBarBorders{ m_container, "DrawBarBorders", true };
 
     // Rendering behavior
     ConfigVariable<bool> RenderToForeground{ m_container, "RenderToForeground", false };
@@ -50,7 +50,7 @@ class Config
     ConfigVariable<bool> ShowBuffIcons{ m_container, "ShowBuffIcons", true };
     ConfigVariable<bool> ShowDebugPanel{ m_container, "ShowDebugPanel", false };
 
-    ConfigVariable<bool>  DrawTestBar{ m_container, "DrawTestBar", false };
+    ConfigVariable<bool> DrawTestBar{ m_container, "DrawTestBar", false };
     ConfigVariable<float> BarPercent{ m_container, "BarPercent", 100.0f };
 
     // Layout / sizes
