@@ -18,10 +18,10 @@
     <ClCompile Include="Ui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ConfigVariable.cpp">
+    <ClCompile Include="Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Config.cpp">
+    <ClCompile Include="ConfigVariable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="IndicatorBar.cpp">
@@ -35,10 +35,10 @@
     <ClInclude Include="Ui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ConfigVariable.h">
+    <ClInclude Include="Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Config.h">
+    <ClInclude Include="ConfigVariable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="IndicatorBar.h">

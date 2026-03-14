@@ -1,33 +1,93 @@
+
 #pragma once
 
-#include <yaml-cpp/yaml.h>
+#include "yaml-cpp/yaml.h"
+#include <string>
+#include <vector>
 
-namespace Ui
+namespace Ui {
+
+class ConfigVariableBase;
+
+enum HPBarStyle
 {
-class Config;
+    HPBarStyle_SolidRed,
+    HPBarStyle_ConColor,
+    HPBarStyle_ColorRange
+};
+
+class ConfigContainer
+{
+public:
+    ConfigContainer();
+    ConfigContainer(YAML::Node configNode);
+
+    void Register(ConfigVariableBase* variable);
+
+    void Update(const ConfigVariableBase& variable);
+    bool IsDirty() const { return m_dirty; }
+
+    void SaveConfig(const std::string& fileName);
+    void LoadConfig(const std::string& fileName);
+
+    template <typename T>
+    void Store(const std::string& key, const T& value)
+    {
+        m_configNode[key] = value;
+    }
+
+    template <typename T>
+    bool Load(const std::string& key, T& value)
+    {
+        if (auto node = m_configNode[key])
+        {
+            try
+            {
+                value = node.as<T>();
+                return true;
+            }
+            catch (const YAML::BadConversion&)
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+private:
+    std::vector<ConfigVariableBase*> m_registry;
+    YAML::Node m_configNode;
+    bool m_dirty = false;
+};
 
 class ConfigVariableBase
 {
-  public:
-    virtual void Deserialize(const YAML::Node& configFile) = 0;
+public:
+    ConfigVariableBase(ConfigContainer& container);
+
+    virtual ~ConfigVariableBase() = default;
+
+    virtual void Load(const YAML::Node& source) = 0;
+    virtual void Store(YAML::Node& target) const = 0;
+
+protected:
+    ConfigContainer& m_container;
 };
 
-template <typename T> class ConfigVariable : public ConfigVariableBase
+template <typename T>
+class ConfigVariable : public ConfigVariableBase
 {
-  public:
-    ConfigVariable(Config* config, const char* key, const T& v);
-
-    const T&           get() const noexcept { return m_value; }
-    const std::string& getKey() const noexcept { return m_configKey; }
-
-    void set(const T& v)
+public:
+    ConfigVariable(ConfigContainer& container, const char* key, const T& v)
+        : ConfigVariableBase(container)
+        , m_key(key)
+        , m_value(v)
     {
-        m_value                                         = v;
-        m_pConfig->GetConfigNode()[m_configKey.c_str()] = v;
-        m_pConfig->SaveSettings();
     }
 
-    operator const T&() const noexcept { return m_value; }
+    ConfigVariable(const ConfigVariable&) = delete;
+    ConfigVariable& operator=(const ConfigVariable&) = delete;
 
     ConfigVariable& operator=(const T& v)
     {
@@ -35,17 +95,39 @@ template <typename T> class ConfigVariable : public ConfigVariableBase
         return *this;
     }
 
-    void Deserialize(const YAML::Node& configFile) override
+    operator const T& () const noexcept { return m_value; }
+
+    const T& get() const noexcept { return m_value; }
+    const std::string& getKey() const noexcept { return m_key; }
+
+    void set(const T& v)
     {
-        if (configFile[m_configKey])
+        m_value = v;
+        m_container.Update(*this);
+    }
+
+    virtual void Store(YAML::Node& yamlNode) const override
+    {
+        yamlNode[m_key] = m_value;
+    }
+
+    virtual void Load(const YAML::Node& yamlNode) override
+    {
+        if (auto node = yamlNode[m_key])
         {
-            m_value = configFile[m_configKey.c_str()].as<T>(m_value);
+            try
+            {
+                m_value = node.as<T>();
+            }
+            catch (const YAML::BadConversion&)
+            {
+            }
         }
     }
 
-  private:
-    T           m_value;
-    std::string m_configKey;
-    Config*     m_pConfig;
+private:
+    std::string m_key;
+    T m_value;
 };
+
 } // namespace Ui

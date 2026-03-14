@@ -1,143 +1,77 @@
 #pragma once
+
 #include "ConfigVariable.h"
 
-#include "imgui.h"
-#include "imgui/imanim/im_anim.h"
-#include "imgui_internal.h"
-#include <unordered_map>
-#include <yaml-cpp/yaml.h>
+#include <string>
 
-namespace Ui
-{
-
-enum HPBarStyle
-{
-    HPBarStyle_SolidRed,
-    HPBarStyle_ConColor,
-    HPBarStyle_ColorRange
-};
+namespace Ui {
 
 class Config
 {
+    Config();
+
   public:
-    void RegisterVariable(ConfigVariableBase* var) { m_registry.push_back(var); };
+    static Config& Get();
+
+    Config(const Config&) = delete;
+    Config& operator=(const Config&) = delete;
 
     void SaveSettings();
     void LoadSettings();
 
   private:
+    std::string m_configFile;
+
     // must come before the variables so that it's initialized when they register themselves in their constructors
-    std::vector<ConfigVariableBase*> m_registry;
+    ConfigContainer m_container;
 
   public:
     // Rendering toggles
-    ConfigVariable<bool> RenderForSelf;
-    ConfigVariable<bool> RenderForGroup;
-    ConfigVariable<bool> RenderForTarget;
-    ConfigVariable<bool> RenderForAllHaters;
+    ConfigVariable<bool> RenderForSelf{ m_container, "RenderForSelf", true };
+    ConfigVariable<bool> RenderForGroup{ m_container, "RenderForGroup", true };
+    ConfigVariable<bool> RenderForTarget{ m_container, "RenderForTarget", true };
+    ConfigVariable<bool> RenderForAllHaters{ m_container, "RenderForAllHaters", true };
 
     // Optional display
-    ConfigVariable<bool>  ShowGuild;
-    ConfigVariable<bool>  ShowPurpose;
-    ConfigVariable<bool>  ShowLevel;
-    ConfigVariable<bool>  ShowClass;
-    ConfigVariable<bool>  ShortClassName;
-    ConfigVariable<bool>  ShowTargetIndicatorWings;
-    ConfigVariable<float> TargetIndicatorWingLength;
-    ConfigVariable<bool>  DrawBarBorders;
+    ConfigVariable<bool> ShowGuild{ m_container, "ShowGuild", false };
+    ConfigVariable<bool> ShowPurpose{ m_container, "ShowPurpose", false };
+    ConfigVariable<bool> ShowLevel{ m_container, "ShowLevel", true };
+    ConfigVariable<bool> ShowClass{ m_container, "ShowClass", true };
+    ConfigVariable<bool> ShortClassName{ m_container, "ShortClassName", true };
+    ConfigVariable<bool> ShowTargetIndicatorWings{ m_container, "ShowTargetIndicatorWings", true };
+    ConfigVariable<float> TargetIndicatorWingLength{ m_container, "TargetIndicatorWingLength", 15.0f };
+    ConfigVariable<bool>  DrawBarBorders{ m_container, "DrawBarBorders", true };
 
     // Rendering behavior
-    ConfigVariable<bool> RenderToForeground;
-    ConfigVariable<bool> RenderNoLOS;
+    ConfigVariable<bool> RenderToForeground{ m_container, "RenderToForeground", false };
+    ConfigVariable<bool> RenderNoLOS{ m_container, "RenderNoLOS", false };
 
     // Basic flags
-    ConfigVariable<bool> ShowBuffIcons;
-    ConfigVariable<bool> ShowDebugPanel;
+    ConfigVariable<bool> ShowBuffIcons{ m_container, "ShowBuffIcons", true };
+    ConfigVariable<bool> ShowDebugPanel{ m_container, "ShowDebugPanel", false };
 
-    ConfigVariable<bool>  DrawTestBar;
-    ConfigVariable<float> BarPercent;
+    ConfigVariable<bool>  DrawTestBar{ m_container, "DrawTestBar", false };
+    ConfigVariable<float> BarPercent{ m_container, "BarPercent", 100.0f };
 
     // Layout / sizes
-    ConfigVariable<float> PaddingX;
-    ConfigVariable<float> PaddingY;
+    ConfigVariable<float> PaddingX{ m_container, "PaddingX", 8.0f };
+    ConfigVariable<float> PaddingY{ m_container, "PaddingY", 4.0f };
 
-    ConfigVariable<float> FontSize;
-    ConfigVariable<float> IconSize;
-    ConfigVariable<float> NameplateWidth;
-    ConfigVariable<int>   HPTicks;
-    ConfigVariable<float> NameplateHeightOffset;
+    ConfigVariable<float> FontSize{ m_container, "FontSize", 20.0f };
+    ConfigVariable<float> IconSize{ m_container, "IconSize", 20.0f };
+    ConfigVariable<float> NameplateWidth{ m_container, "NameplateWidth", 500.0f };
+    ConfigVariable<int> HPTicks{ m_container, "HPTicks", 10 };
+    ConfigVariable<float> NameplateHeightOffset{ m_container, "NameplateHeightOffset", 35.0f };
 
     // Bar appearance
-    ConfigVariable<float> BarRounding;
-    ConfigVariable<float> BarBorderThickness;
+    ConfigVariable<float> BarRounding{ m_container, "BarRounding", 6.0f };
+    ConfigVariable<float> BarBorderThickness{ m_container, "BarBorderThickness", 2.5f };
 
     // HP bar style
-    ConfigVariable<int> HPBarStyleSelf;
-    ConfigVariable<int> HPBarStyleGroup;
-    ConfigVariable<int> HPBarStyleTarget;
-    ConfigVariable<int> HPBarStyleHaters;
-
-    YAML::Node& GetConfigNode() { return m_configNode; }
-
-    static Config& Get()
-    {
-        static Config instance;
-        return instance;
-    }
-
-    Config(const Config&)            = delete;
-    Config(Config&&)                 = delete;
-    Config& operator=(const Config&) = delete;
-    Config& operator=(Config&&)      = delete;
-
-  private:
-    std::string m_configFile;
-    YAML::Node  m_configNode;
-
-    Config()
-        // clang-format off
-        : RenderForSelf(this, "RenderForSelf", true),
-		  RenderForGroup(this, "RenderForGroup", true),
-          RenderForTarget(this, "RenderForTarget", true),
-          RenderForAllHaters(this, "RenderForAllHaters", true),
-
-          ShowGuild(this, "ShowGuild", false),
-          ShowPurpose(this, "ShowPurpose", false),
-          ShowLevel(this, "ShowLevel", true),
-          ShowClass(this, "ShowClass", true),
-          ShortClassName(this, "ShortClassName", true),
-          ShowTargetIndicatorWings(this, "ShowTargetIndicatorWings", true),
-          TargetIndicatorWingLength(this, "TargetIndicatorWingLength", 15.0f),
-	      DrawBarBorders(this, "DrawBarImages", true),
-        
-		  RenderToForeground(this, "RenderToForeground", false),
-          RenderNoLOS(this, "RenderNoLOS", false),
-        
-		  ShowBuffIcons(this, "ShowBuffIcons", true),
-          ShowDebugPanel(this, "ShowDebugPanel", false),
-          
-	      PaddingX(this, "PaddingX", 8.0f),
-          PaddingY(this, "PaddingY", 4.0f),
-
-		  FontSize(this, "FontSize", 20.0f),
-          IconSize(this, "IconSize", 20.0f),
-          NameplateWidth(this, "NameplateWidth", 500.0f),
-          HPTicks(this, "HPTicks", 10),
-          NameplateHeightOffset(this, "NameplateHeightOffset", 35.0f),
-
-		  BarRounding(this, "BarRounding", 6.0f),
-          BarBorderThickness(this, "BarBorderThickness", 2.5f),
-
-		  DrawTestBar(this, "DrawTestBar", false),
-		  BarPercent(this, "BarPercent", 100.0f),
-
-          HPBarStyleSelf(this, "HPBarStyleSelf", static_cast<int>(HPBarStyle_ColorRange)),
-          HPBarStyleGroup(this, "HPBarStyleGroup", static_cast<int>(HPBarStyle_ColorRange)),
-          HPBarStyleTarget(this, "HPBarStyleTarget", static_cast<int>(HPBarStyle_ColorRange)),
-          HPBarStyleHaters(this, "HPBarStyleHaters", static_cast<int>(HPBarStyle_ColorRange))
-    // clang-format on
-    {
-        LoadSettings();
-    };
+    ConfigVariable<int> HPBarStyleSelf{ m_container, "HPBarStyleSelf", static_cast<int>(HPBarStyle_ColorRange) };
+    ConfigVariable<int> HPBarStyleGroup{ m_container, "HPBarStyleGroup", static_cast<int>(HPBarStyle_ColorRange) };
+    ConfigVariable<int> HPBarStyleTarget{ m_container, "HPBarStyleTarget", static_cast<int>(HPBarStyle_ColorRange) };
+    ConfigVariable<int> HPBarStyleHaters{ m_container, "HPBarStyleHaters", static_cast<int>(HPBarStyle_ColorRange) };
 };
+
 } // namespace Ui
