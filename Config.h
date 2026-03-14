@@ -44,6 +44,7 @@ class Config
     ConfigVariable<bool>  ShortClassName;
     ConfigVariable<bool>  ShowTargetIndicatorWings;
     ConfigVariable<float> TargetIndicatorWingLength;
+    ConfigVariable<bool>  DrawBarBorders;
 
     // Rendering behavior
     ConfigVariable<bool> RenderToForeground;
@@ -52,6 +53,9 @@ class Config
     // Basic flags
     ConfigVariable<bool> ShowBuffIcons;
     ConfigVariable<bool> ShowDebugPanel;
+
+    ConfigVariable<bool>  DrawTestBar;
+    ConfigVariable<float> BarPercent;
 
     // Layout / sizes
     ConfigVariable<float> PaddingX;
@@ -91,58 +95,47 @@ class Config
     YAML::Node  m_configNode;
 
     Config()
+        // clang-format off
         : RenderForSelf(this, "RenderForSelf", true),
-
-          RenderForGroup(this, "RenderForGroup", true),
-
+		  RenderForGroup(this, "RenderForGroup", true),
           RenderForTarget(this, "RenderForTarget", true),
-
           RenderForAllHaters(this, "RenderForAllHaters", true),
 
           ShowGuild(this, "ShowGuild", false),
-
           ShowPurpose(this, "ShowPurpose", false),
-
           ShowLevel(this, "ShowLevel", true),
-
           ShowClass(this, "ShowClass", true),
-
           ShortClassName(this, "ShortClassName", true),
-
           ShowTargetIndicatorWings(this, "ShowTargetIndicatorWings", true),
-
           TargetIndicatorWingLength(this, "TargetIndicatorWingLength", 15.0f),
-
-          RenderToForeground(this, "RenderToForeground", false),
-
+	      DrawBarBorders(this, "DrawBarImages", true),
+        
+		  RenderToForeground(this, "RenderToForeground", false),
           RenderNoLOS(this, "RenderNoLOS", false),
-
-          ShowBuffIcons(this, "ShowBuffIcons", true),
-
+        
+		  ShowBuffIcons(this, "ShowBuffIcons", true),
           ShowDebugPanel(this, "ShowDebugPanel", false),
-
-          PaddingX(this, "PaddingX", 8.0f),
-
+          
+	      PaddingX(this, "PaddingX", 8.0f),
           PaddingY(this, "PaddingY", 4.0f),
 
-          FontSize(this, "FontSize", 20.0f),
-
+		  FontSize(this, "FontSize", 20.0f),
           IconSize(this, "IconSize", 20.0f),
-
           NameplateWidth(this, "NameplateWidth", 500.0f),
-
           HPTicks(this, "HPTicks", 10),
-
           NameplateHeightOffset(this, "NameplateHeightOffset", 35.0f),
 
-          BarRounding(this, "BarRounding", 6.0f),
-
+		  BarRounding(this, "BarRounding", 6.0f),
           BarBorderThickness(this, "BarBorderThickness", 2.5f),
+
+		  DrawTestBar(this, "DrawTestBar", false),
+		  BarPercent(this, "BarPercent", 100.0f),
 
           HPBarStyleSelf(this, "HPBarStyleSelf", static_cast<int>(HPBarStyle_ColorRange)),
           HPBarStyleGroup(this, "HPBarStyleGroup", static_cast<int>(HPBarStyle_ColorRange)),
           HPBarStyleTarget(this, "HPBarStyleTarget", static_cast<int>(HPBarStyle_ColorRange)),
           HPBarStyleHaters(this, "HPBarStyleHaters", static_cast<int>(HPBarStyle_ColorRange))
+    // clang-format on
     {
         LoadSettings();
     };

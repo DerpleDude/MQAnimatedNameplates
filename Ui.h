@@ -1,6 +1,7 @@
 #pragma once
 #include "Config.h"
 #include "ConfigVariable.h"
+#include "IndicatorBar.h"
 
 #include "imgui.h"
 #include "imgui/imanim/im_anim.h"
@@ -31,12 +32,12 @@ void RenderNamePlateRect(CursorState& cursor, const ImVec2& size, ImU32 color, f
                          bool filled);
 void DrawInspectableSpellIcon(CursorState& cursor, eqlib::EQ_Spell* pSpell);
 
-void RenderAnimatedPercentage(CursorState& cursor, const std::string& id, const float barPct, const float height,
-                              const float width, ImU32 colLow, ImU32 colMid, ImU32 colHigh, ImU32 colHighlight,
+void RenderAnimatedPercentage(CursorState& cursor, const std::string& id, const float barPct, const ImVec2& barSize,
+                              ImU32 colLow, ImU32 colMid, ImU32 colHigh, ImU32 colHighlight,
                               const std::string& label = "", bool currentTarget = false);
 
-void RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPct, float height, float width,
-                      ImU32 conColor, bool currentTarget, const std::string& label = "",
+void RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPct, const ImVec2& barSize, ImU32 conColor,
+                      bool currentTarget, const std::string& label = "",
                       HPBarStyle style = HPBarStyle::HPBarStyle_ColorRange);
 
 void RenderSettingsPanel();

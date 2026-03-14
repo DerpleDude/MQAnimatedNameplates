@@ -19,6 +19,8 @@
 PreSetup("MQAnimatedNameplates");
 PLUGIN_VERSION(0.1);
 
+iam_context* context = nullptr;
+
 void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
 {
     if (!pSpawn)
@@ -194,9 +196,8 @@ void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
     cursor.SetPos(ImVec2(startXPos, cursor.GetPos().y));
 
     std::string hpBarID = fmt::format("TargetHPBar_{}", pSpawn->SpawnID);
-
-    Ui::RenderFancyHPBar(cursor, hpBarID, pctHP, ImGui::GetTextLineHeight() * 0.75f,
-                         canvasSize.x - Ui::Config::Get().PaddingX * 2, conColor, pTarget == pSpawn, "", style);
+    ImVec2      barSize{canvasSize.x - Ui::Config::Get().PaddingX * 2, ImGui::GetTextLineHeight() * 0.75f};
+    Ui::RenderFancyHPBar(cursor, hpBarID, pctHP, barSize, conColor, pTarget == pSpawn, "", style);
     ImGui::PopFont();
 
     targetNameplateBottomRight.x =
@@ -221,12 +222,22 @@ void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style)
     }
 }
 
-PLUGIN_API void InitializePlugin() { AddSettingsPanel("plugins/Nameplates", Ui::RenderSettingsPanel); }
+PLUGIN_API void InitializePlugin()
+{
+    context = iam_context_create();
+    AddSettingsPanel("plugins/Nameplates", Ui::RenderSettingsPanel);
+}
 
-PLUGIN_API void ShutdownPlugin() { RemoveSettingsPanel("plugins/Nameplates"); }
+PLUGIN_API void ShutdownPlugin()
+{
+    iam_context_destroy(context);
+    RemoveSettingsPanel("plugins/Nameplates");
+}
 
 PLUGIN_API void OnUpdateImGui()
 {
+    iam_context_set_current(context);
+
     if (GetGameState() == GAMESTATE_INGAME)
     {
         if (!pDisplay)

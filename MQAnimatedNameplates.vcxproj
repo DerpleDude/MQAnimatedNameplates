@@ -96,12 +96,14 @@
   <ItemGroup>
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="ConfigVariable.cpp" />
+    <ClCompile Include="IndicatorBar.cpp" />
     <ClCompile Include="MQAnimatedNameplates.cpp" />
     <ClCompile Include="Ui.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.h" />
     <ClInclude Include="ConfigVariable.h" />
+    <ClInclude Include="IndicatorBar.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Ui.h" />
   </ItemGroup>

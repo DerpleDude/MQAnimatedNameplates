@@ -13,6 +13,8 @@
 using namespace eqlib;
 
 Ui::ProgressBarStateStruct Ui::ProgressBarState;
+Ui::IndicatorBar           indicatorBar1("frame1.png", "hp_filler_green.png");
+Ui::IndicatorBar           indicatorBar2("frame1.png", "");
 
 static float GetUIDeltaTime()
 {
@@ -80,8 +82,8 @@ void Ui::DrawInspectableSpellIcon(CursorState& cursor, EQ_Spell* pSpell)
     cursor.Move(size);
 }
 
-void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, const float barPct, const float height,
-                                  const float width, ImU32 colLow, ImU32 colMid, ImU32 colHigh, ImU32 colHighlight,
+void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, const float barPct, const ImVec2& barSize,
+                                  ImU32 colLow, ImU32 colMid, ImU32 colHigh, ImU32 colHighlight,
                                   const std::string& label /* = "" */, bool currentTarget /* = false */)
 {
     float targetPct = std::clamp(barPct, 0.0f, 100.0f);
@@ -125,11 +127,11 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
 
     float minX = curPos.x;
     float minY = curPos.y;
-    float maxX = curPos.x + width;
-    float maxY = curPos.y + height;
+    float maxX = curPos.x + barSize.x;
+    float maxY = curPos.y + barSize.y;
 
-    float barW = width;
-    float barH = height;
+    float barW = barSize.x;
+    float barH = barSize.y;
 
     ImU32 bgTop    = IM_COL32(28, 30, 41, 247);
     ImU32 bgBottom = IM_COL32(10, 13, 20, 247);
@@ -280,11 +282,9 @@ void Ui::RenderAnimatedPercentage(CursorState& cursor, const std::string& id, co
 
     drawList->AddText(ImVec2(textX + 1, textY + 1), IM_COL32(0, 0, 0, 230), text.c_str());
     drawList->AddText(ImVec2(textX, textY), IM_COL32(255, 255, 255, 255), text.c_str());
-
-    // Ui::DrawDragonWing(drawList, ImVec2(minX, minY), (maxY-minY)*8.0f, (maxX-minX), -1.0f, 1.0f);
 }
 
-void Ui::RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPct, float height, float width,
+void Ui::RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPct, const ImVec2& barSize,
                           ImU32 conColor, bool currentTarget, const std::string& label, Ui::HPBarStyle style)
 {
     ImU32 hpLow  = IM_COL32(floor(0.8f * 255), floor(0.2f * 255), floor(0.2f * 255), 255);
@@ -308,8 +308,27 @@ void Ui::RenderFancyHPBar(CursorState& cursor, const std::string& id, float hpPc
         break;
     }
 
-    RenderAnimatedPercentage(cursor, id, hpPct, height, width, hpLow, hpMid, hpHigh, highlightColor, label,
-                             currentTarget);
+    ImDrawList* drawList = Ui::GetDrawList();
+
+    if (Ui::Config::Get().DrawTestBar)
+    {
+        indicatorBar1.Render("##HPBar1", drawList, ImVec2(1000, 200), ImVec2(420, 90), ImVec2(260, 30),
+                             Config::Get().BarPercent, ImGui::GetIO().DeltaTime);
+    }
+
+    if (Ui::Config::Get().DrawBarBorders)
+        cursor.SetPos(ImVec2(cursor.GetPos().x, cursor.GetPos().y + 12));
+
+    RenderAnimatedPercentage(cursor, id, hpPct, barSize, hpLow, hpMid, hpHigh, highlightColor, label, currentTarget);
+
+    // this is a mess i need to clean up later but this gets data assuming a left offset but the bar renders from center
+    // so we need to adjust the position
+    if (Ui::Config::Get().DrawBarBorders)
+    {
+        ImVec2 barPos = ImVec2(cursor.GetPos().x + Ui::Config::Get().NameplateWidth / 2.0f, cursor.GetPos().y + 8);
+        indicatorBar2.Render("##HPBar2", drawList, barPos, ImVec2(420, 46), ImVec2(0, 0), Config::Get().BarPercent,
+                             ImGui::GetIO().DeltaTime);
+    }
 }
 
 void Ui::AnimatedCheckmark::Reset(bool newVal)
@@ -637,10 +656,13 @@ bool Ui::AnimatedCombo(const std::string& label, int* value, std::vector<std::st
     ImGui::PushID(label.c_str());
     // Dropdown button
     ImGui::InvisibleButton("dropdown_btn", ImVec2(btn_width, btn_height));
+    bool hovered = ImGui::IsItemHovered();
+
     if (ImGui::IsItemClicked())
         animState.open = !animState.open;
 
-    dl->AddRectFilled(pos, ImVec2(pos.x + btn_width, pos.y + btn_height), IM_COL32(60, 65, 75, 255), 4);
+    dl->AddRectFilled(pos, ImVec2(pos.x + btn_width, pos.y + btn_height),
+                      hovered ? ImGui::GetColorU32(ImGuiCol_FrameBgHovered) : ImGui::GetColorU32(ImGuiCol_FrameBg), 4);
     dl->AddText(ImVec2(pos.x + 10, pos.y + (btn_height - ImGui::GetFontSize()) * 0.5f), IM_COL32(255, 255, 255, 255),
                 items[*value].c_str());
 
@@ -677,7 +699,15 @@ bool Ui::AnimatedCombo(const std::string& label, int* value, std::vector<std::st
             ImGui::SetCursorScreenPos(item_pos);
             ImGui::InvisibleButton(fmt::format("##menuitem{}", i).c_str(), ImVec2(btn_width, item_height));
 
-            bool active = ImGui::IsItemActive();
+            bool menu_hovered = ImGui::IsItemHovered();
+            bool active       = ImGui::IsItemActive();
+
+            if (menu_hovered)
+            {
+                tdl->AddRectFilled(item_pos - ImVec2(10, 0),
+                                   ImVec2(item_pos.x + btn_width - 10, item_pos.y + item_height),
+                                   ImGui::GetColorU32(ImGuiCol_ButtonHovered) & 0xFFFFFF0A);
+            }
 
             tdl->AddText(item_pos, IM_COL32(200, 200, 210, (int)(item_alpha * 255)), items[i].c_str());
 
@@ -842,6 +872,10 @@ void Ui::RenderSettingsPanel()
 
              ImGui::NewLine();
 
+             bool drawBarBorders = Config::Get().DrawBarBorders;
+             if (Ui::AnimatedCheckbox("Draw Bar Borders", &drawBarBorders))
+                 Config::Get().DrawBarBorders = drawBarBorders;
+
              bool renderToForeground = Config::Get().RenderToForeground;
              if (Ui::AnimatedCheckbox("Always on Top", &renderToForeground))
                  Config::Get().RenderToForeground = renderToForeground;
@@ -856,6 +890,15 @@ void Ui::RenderSettingsPanel()
              bool showDebugPanel = Config::Get().ShowDebugPanel;
              if (Ui::AnimatedCheckbox("Show Debug Panel", &showDebugPanel))
                  Config::Get().ShowDebugPanel = showDebugPanel;
+
+             ImGui::NewLine();
+             bool drawTestBar = Config::Get().DrawTestBar;
+             if (Ui::AnimatedCheckbox("Draw Test Bar", &drawTestBar))
+                 Config::Get().DrawTestBar = drawTestBar;
+
+             float barPercent = Config::Get().BarPercent;
+             if (Ui::AnimatedSlider("Bar %", &barPercent, 0.0f, 100.0f, "%.0f", 200))
+                 Config::Get().BarPercent = barPercent;
          }},
     };
 
