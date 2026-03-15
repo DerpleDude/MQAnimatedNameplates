@@ -190,7 +190,8 @@ void Nameplate::Render(const ImVec2& center_pos, const ImVec2& frameSize, float 
     // Level
     //
 
-    RenderNameplateText(levelTextPos, textColor, targetLevel.c_str());
+    if (Config::Get().ShowLevel)
+        RenderNameplateText(levelTextPos, textColor, targetLevel.c_str());
 
     //
     // Buff Icons
