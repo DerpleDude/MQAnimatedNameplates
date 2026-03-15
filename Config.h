@@ -78,15 +78,15 @@ public:
     ConfigVariable<float> BarPercent{ m_container, "BarPercent", 100.0f, 0.0f, 100.0f };
     ConfigVariable<bool> UseBonePosition{ m_container, "UseBonePosition", true };
     ConfigVariable<float> ScaleFactorAdjustment{ m_container, "ScaleFactorAdjustment", 1.0f, 0.001f, 10.0f };
-    ConfigVariable<float> NameplateHeightAdjust{ m_container, "NameplateHeightAdjust", 10.0f, 0.0f, 25.0f };
-    ConfigVariable<float> NameplateHeightScaleCoeff{ m_container, "NameplateHeightScaleCoeff", 0.35f, 0.01f, 1.0f };
+    ConfigVariable<float> NameplateHeightAdjust{ m_container, "NameplateHeightAdjust", 5.0f, 0.0f, 25.0f };
+    ConfigVariable<float> NameplateHeightScaleCoeff{ m_container, "NameplateHeightScaleCoeff", 0.3125f, 0.01f, 1.0f };
 
     // Layout / sizes
     ConfigVariable<float> FontSize{ m_container, "FontSize", 20.0f, 1.0f, 40.0f };
     ConfigVariable<float> IconSize{ m_container, "IconSize", 20.0f, 10.0f, 40.0f };
     ConfigVariable<float> NameplateWidth{ m_container, "NameplateWidth", 500.0f, 25.0f, 1500.0f };
     ConfigVariable<int> HPTicks{ m_container, "HPTicks", 10, 1, 25 };
-    ConfigVariable<float> NameplateHeightOffset{ m_container, "NameplateHeightOffset", 35.0f, -100.0f, 400.0f };
+    ConfigVariable<float> NameplateHeightOffset{ m_container, "NameplateHeightOffset", 35.0f, -200.0f, 400.0f };
 
     // Bar appearance
     ConfigVariable<float> BarRounding{ m_container, "BarRounding", 6.0f, 0.0f, 10.0f };

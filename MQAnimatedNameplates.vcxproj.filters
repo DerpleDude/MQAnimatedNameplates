@@ -15,7 +15,7 @@
     <ClCompile Include="MQAnimatedNameplates.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Ui.cpp">
+    <ClCompile Include="SettingsPanel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ConfigVariable.cpp">
@@ -24,7 +24,10 @@
     <ClCompile Include="Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IndicatorBar.cpp">
+    <ClCompile Include="NamePlate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,7 +35,7 @@
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Ui.h">
+    <ClInclude Include="SettingsPanel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ConfigVariable.h">
@@ -41,7 +44,7 @@
     <ClInclude Include="Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="IndicatorBar.h">
+    <ClInclude Include="NamePlate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Widgets.h">

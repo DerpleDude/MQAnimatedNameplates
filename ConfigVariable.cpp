@@ -1,6 +1,6 @@
 
 #include "ConfigVariable.h"
-#include "Ui.h"
+#include "Widgets.h"
 
 #include "spdlog/spdlog.h"
 #include <fstream>
