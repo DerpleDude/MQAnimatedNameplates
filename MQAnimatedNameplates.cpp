@@ -214,7 +214,8 @@ static void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style, bool alwa
     if (!alwaysVisible && !CanSeeNameplate(pSpawn))
         return;
 
-    std::string hpBarID  = fmt::format("TargetHPBar_{}", pSpawn->SpawnID);
+    char hpBarID[32];
+    sprintf_s(hpBarID, "TargetHPBar_%d", pSpawn->SpawnID);
     mq::MQColor conColor = GetColorForChatColor(ConColor(pSpawn));
 
     auto [it, inserted] =

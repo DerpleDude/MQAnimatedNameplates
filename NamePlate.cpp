@@ -9,6 +9,8 @@
 
 namespace Ui {
 
+static const ImGuiID pct_id = ImHashStr("pct_tween");
+
 Nameplate::Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, mq::MQColor conColor)
     : m_id(id)
     , m_conColor(conColor)
@@ -71,7 +73,7 @@ void Nameplate::Render(const ImVec2& center_pos, const ImVec2& frameSize, float 
             m_trendDirection = 1;
     }
 
-    m_smoothPercent = iam_tween_float(ImHashStr(m_id.c_str()), ImHashStr("pctTween"), percent, 0.5f,
+    m_smoothPercent = iam_tween_float(ImHashStr(m_id.c_str()), pct_id, percent, 0.5f,
         iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt, percent) / 100.0f;
 
     if (m_pTextureBar && m_pTextureBar->IsValid())
@@ -609,6 +611,5 @@ void Nameplate::AddRectFilledMultiColorRounded(const ImVec2& p_min, const ImVec2
     drawList->_VtxCurrentIdx += static_cast<ImDrawIdx>(vtx_count);
     drawList->PathClear();
 }
-
 
 } // namespace Ui

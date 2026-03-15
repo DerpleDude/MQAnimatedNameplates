@@ -8,7 +8,7 @@
 
 namespace Ui {
 
-bool AnimatedCheckbox(const std::string& label, bool* value);
+bool AnimatedCheckbox(const char* label, bool* value);
 bool AnimatedCombo(const char* label, int* value, const std::vector<std::string>& items);
 
 bool AnimatedSlider(const char* label, float* slider_value, float slider_min, float slider_max,
@@ -24,9 +24,15 @@ bool AnimatedEnumCombo(const char* label, T* value);
 class AnimatedCheckmark
 {
 public:
-    AnimatedCheckmark(bool value, ImGuiID path1Id, ImGuiID path2Id)
-        : m_newValue(value), m_animIdPath1(path1Id), m_animIdPath2(path2Id)
+    AnimatedCheckmark(bool value, const char* label)
+        : m_newValue(value)
     {
+        char id[32];
+        sprintf_s(id, "%s_path1", label);
+        m_animIdPath1 = ImHashStr(id);
+        sprintf_s(id, "%s_path2", label);
+        m_animIdPath2 = ImHashStr(id);
+
         Reset(value);
     }
 

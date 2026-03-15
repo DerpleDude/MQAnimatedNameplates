@@ -8,8 +8,12 @@
 
 namespace Ui {
 
-std::unordered_map<ImGuiID, AnimatedCheckmark> checkBoxAnims;
-std::unordered_map<ImU32, AnimatedComboState> comboAnimTimes;
+static std::unordered_map<ImGuiID, AnimatedCheckmark> s_checkBoxAnims;
+static std::unordered_map<ImU32, AnimatedComboState> s_comboAnimTimes;
+
+static const ImGuiID scale_id = ImHashStr("scale");
+static const ImGuiID arrow_rot_id = ImHashStr("arrow_rot");
+static const ImGuiID menu_height_id = ImHashStr("menu_height");
 
 void AnimatedCheckmark::Reset(bool newVal)
 {
@@ -116,9 +120,9 @@ void AnimatedCheckmark::Render(ImDrawList* dl, const ImRect& check_bb, float box
     }
 }
 
-bool AnimatedCheckbox(const std::string& label, bool* value)
+bool AnimatedCheckbox(const char* label, bool* value)
 {
-    ImU32 animId = ImHashStr(label.c_str());
+    ImGui::PushID(label);
 
     ImDrawList* dl = ImGui::GetWindowDrawList();
 
@@ -128,16 +132,13 @@ bool AnimatedCheckbox(const std::string& label, bool* value)
     const ImRect check_bb(box_pos, box_pos + ImVec2(box_size, box_size));
     float        line_height = ImGui::GetTextLineHeight();
 
-    ImVec2      label_size = ImGui::CalcTextSize(label.c_str());
+    ImVec2      label_size = ImGui::CalcTextSize(label);
     ImGuiStyle& style = ImGui::GetStyle();
 
-    auto [it, inserted] = checkBoxAnims.try_emplace(
-        animId, Ui::AnimatedCheckmark(*value, ImHashStr(fmt::format("{}_path1", label).c_str()),
-            ImHashStr(fmt::format("{}_path2", label).c_str())));
-    auto& animState = it->second;
-    bool  valueStart = *value;
+    ImU32 anim_id = ImGui::GetID("##anim");
 
-    ImGui::PushID(label.c_str());
+    auto [it, inserted] = s_checkBoxAnims.try_emplace(anim_id, *value, label);
+    auto& animState = it->second;
 
     ImGui::SetCursorScreenPos(box_pos);
 
@@ -146,9 +147,9 @@ bool AnimatedCheckbox(const std::string& label, bool* value)
     const ImRect total_bb(
         box_pos, box_pos + ImVec2(box_size + (label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f),
             label_size.y + style.FramePadding.y * 2.0f));
-    const ImGuiID id = ImGui::GetID(label.c_str());
-    const bool    is_visible = ImGui::ItemAdd(total_bb, id);
-    bool          pressed = ImGui::ButtonBehavior(total_bb, id, &hovered, &held);
+
+    const bool is_visible = ImGui::ItemAdd(total_bb, anim_id);
+    bool pressed = ImGui::ButtonBehavior(total_bb, anim_id, &hovered, &held);
 
     if (pressed || inserted)
     {
@@ -159,11 +160,16 @@ bool AnimatedCheckbox(const std::string& label, bool* value)
     }
 
     // Box background
-    ImU32 box_bg = ImGui::GetColorU32((held && hovered) ? ImGuiCol_FrameBgActive
-        : hovered ? ImGuiCol_FrameBgHovered
-        : ImGuiCol_FrameBg);
+    ImU32 box_bg;
+
+    if (held && hovered)
+        box_bg = ImGui::GetColorU32(ImGuiCol_FrameBgActive);
+    else if (hovered)
+        box_bg = ImGui::GetColorU32(ImGuiCol_FrameBgHovered);
+    else
+        box_bg = ImGui::GetColorU32(ImGuiCol_FrameBg);
     const float border_size = style.FrameBorderSize;
-    ImVec2      center = (check_bb.Min + check_bb.Max) * 0.5f;
+    ImVec2 center = (check_bb.Min + check_bb.Max) * 0.5f;
 
     dl->AddRectFilled(check_bb.Min, check_bb.Max, box_bg, style.FrameRounding);
     dl->AddRect(check_bb.Min + ImVec2(1, 1), check_bb.Max + ImVec2(1, 1), ImGui::GetColorU32(ImGuiCol_BorderShadow),
@@ -175,7 +181,7 @@ bool AnimatedCheckbox(const std::string& label, bool* value)
 
     // Label
     const ImVec2 label_pos = ImVec2(check_bb.Max.x + style.ItemInnerSpacing.x, check_bb.Min.y + style.FramePadding.y);
-    dl->AddText(label_pos, ImGui::GetColorU32(ImGuiCol_Text), label.c_str());
+    dl->AddText(label_pos, ImGui::GetColorU32(ImGuiCol_Text), label);
 
     ImGui::PopID();
 
@@ -267,7 +273,7 @@ bool AnimatedSliderImpl(const char* label, T * slider_value, T slider_min, T sli
 
     // Animate thumb scale
     float target_scale = hovered ? 1.3f : 1.0f;
-    float thumb_scale = iam_tween_float(id, ImHashStr("scale"), target_scale, 0.15f,
+    float thumb_scale = iam_tween_float(id, scale_id, target_scale, 0.15f,
         iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt, 1.0f);
 
     // Draw thumb glow when hovered
@@ -315,8 +321,8 @@ template <typename T>
 bool AnimatedComboImpl(const char* label, T* value, int item_count,
     std::function<T(int)>&& values_getter, std::function<const char* (int)>&& labels_getter)
 {
-    ImU32 animId = ImHashStr(label);
-    bool  changed = false;
+    ImGuiID animId = ImHashStr(label);
+    bool changed = false;
 
     float dt = ImGui::GetIO().DeltaTime;
     ImDrawList* dl = ImGui::GetWindowDrawList();
@@ -324,9 +330,7 @@ bool AnimatedComboImpl(const char* label, T* value, int item_count,
 
     ImGuiStyle& style = ImGui::GetStyle();
 
-    auto [it, inserted] = comboAnimTimes.try_emplace(animId, Ui::AnimatedComboState());
-    auto& animState = it->second;
-
+    auto& animState = s_comboAnimTimes[animId];
     if (animState.open)
         animState.open_time += dt;
     else
@@ -355,9 +359,6 @@ bool AnimatedComboImpl(const char* label, T* value, int item_count,
         hovered ? ImGui::GetColorU32(ImGuiCol_FrameBgHovered) : ImGui::GetColorU32(ImGuiCol_FrameBg), 4);
     dl->AddText(ImVec2(pos.x + 10, pos.y + (btn_height - ImGui::GetFontSize()) * 0.5f), IM_COL32(255, 255, 255, 255),
         labels_getter(*value));
-
-    static const ImGuiID arrow_rot_id = ImHashStr("arrow_rot");
-    static const ImGuiID menu_height_id = ImHashStr("menu_height");
 
     // Arrow
     float arrow_x = pos.x + btn_width - 20;

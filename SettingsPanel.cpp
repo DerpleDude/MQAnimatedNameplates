@@ -13,6 +13,10 @@
 
 using namespace eqlib;
 
+static const ImGuiID x_id = ImHashStr("x");
+static const ImGuiID w_id = ImHashStr("w");
+
+
 template <typename T> requires std::is_floating_point_v<T>
 bool RenderOption(Ui::NumericConfigVariable<T>& variable, const char* labelText, float width = 0.0f, const char* format = "%.2f")
 {
@@ -200,9 +204,9 @@ void Ui::RenderSettingsPanel()
 
     // Animate indicator with spring
     ImGuiID id = ImGui::GetID("animnp_tab_indicator");
-    float indicator_x = iam_tween_float(id, ImHashStr("x"), target_x, 0.3f,
+    float indicator_x = iam_tween_float(id, x_id, target_x, 0.3f,
         iam_ease_spring_desc(1.0f, 180.0f, 18.0f, 0.0f), iam_policy_crossfade, dt);
-    float indicator_width = iam_tween_float(id, ImHashStr("w"), target_width, 0.25f,
+    float indicator_width = iam_tween_float(id, w_id, target_width, 0.25f,
         iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt);
 
     // Draw tabs
@@ -214,8 +218,9 @@ void Ui::RenderSettingsPanel()
 
         // Invisible button
         ImGui::SetCursorScreenPos(tab_min);
-        std::string btn_id = fmt::format("##animnp_tab{}", tab.name);
-        if (ImGui::InvisibleButton(btn_id.c_str(), ImVec2(tab_width, tab_height)))
+        ImGui::PushID(tab.idx);
+
+        if (ImGui::InvisibleButton("##tab_btn", ImVec2(tab_width, tab_height)))
             active_tab = tab.idx;
 
         bool hovered = ImGui::IsItemHovered();
@@ -230,6 +235,8 @@ void Ui::RenderSettingsPanel()
         dl->AddText(text_pos, ImGui::GetColorU32(ImGuiCol_Text), tab.name.c_str());
 
         x += tab_width;
+
+        ImGui::PopID();
     }
 
     // Draw animated indicator
