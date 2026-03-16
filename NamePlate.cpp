@@ -455,7 +455,11 @@ void Nameplate::RenderDebugInfo(const ImVec2& min, const ImVec2& max, ImU32 colo
 
 
     ImU32 pink = IM_COL32(240, 80, 240, 255);
-    drawList->AddText(min + ImVec2(0, ImGui::GetTextLineHeightWithSpacing()), pink, fmt::format("Scale: {:.5f} FinalScale: {:.5f}", 1.0f / scale, finalScale).c_str());
+    char debugText[128];
+    sprintf_s(debugText, "Scale: %.5f FinalScale: %.5f TargetPct: %.2f SmoothPct: %.2f", 1.0f / scale, finalScale, m_targetPercent, m_smoothPercent);
+
+    ImVec2 textPos{ min.x, max.y + ImGui::GetTextLineHeightWithSpacing() };
+    drawList->AddText(textPos, pink, debugText);
 
     drawList->AddRectFilled(min, max, color, rounding);
 }
