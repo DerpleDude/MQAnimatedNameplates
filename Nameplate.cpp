@@ -11,7 +11,8 @@
 namespace Ui {
 
 static MaskedImage g_maskedImage{ "ruler.png", "BarBorders\\blizzard-cast-bar-square-mask.png" };
-static MaskedImage g_maskedImage2{ "fishface.png", "BarBorders\\blizzard-cast-bar-square-mask64.png" };
+static MaskedImage g_maskedImage2{ "fishface.png", "BarBorders\\blizzard-cast-bar-square-mask.png" };
+static MaskedImage g_maskedImage3{ "energy_filler_gold.png", "BarBorders\\round-square-mask.png" };
 
 static const ImGuiID pct_id = ImHashStr("pct_tween");
 
@@ -23,23 +24,41 @@ ImU32 ReduceAlpha(ImU32 col, float factor)
     return (col & 0x00FFFFFF) | (a << 24);
 }
 
-Nameplate::Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, mq::MQColor conColor)
+Nameplate::Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, float initPctHp, mq::MQColor conColor)
     : m_id(id)
     , m_idHash(ImHashStr(id.c_str()))
     , m_conColor(conColor)
     , m_pSpawn(pSpawn)
+    , m_targetPercent(std::clamp(initPctHp, 0.0f, 100.0f) / 100.f)
 {
+    InitIamAnim();
 }
 
-Nameplate::Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, mq::MQColor conColor,
+Nameplate::Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, float initPctHp, mq::MQColor conColor,
     const std::string& textureFrame, const std::string& textureBar)
     : m_id(id)
     , m_idHash(ImHashStr(id.c_str()))
     , m_conColor(conColor)
     , m_pSpawn(pSpawn)
+    , m_targetPercent(std::clamp(initPctHp, 0.0f, 100.0f) / 100.f)
 {
     m_pTextureFrame = mq::CreateTexturePtr(textureFrame);
     m_pTextureBar = mq::CreateTexturePtr(textureBar);
+
+    InitIamAnim();
+}
+
+void Nameplate::InitIamAnim()
+{
+    float dt = ImGui::GetIO().DeltaTime;
+
+    bool lazy_init_enabled = iam_is_lazy_init_enabled();
+    iam_set_lazy_init(false);
+
+    m_smoothPercent = iam_tween_float(ImHashStr(m_id.c_str()), pct_id, m_targetPercent * 100.0f, 0.5f,
+        iam_ease_preset(iam_ease_linear), iam_policy_crossfade, dt, m_targetPercent * 100.0f) / 100.0f;
+
+    iam_set_lazy_init(lazy_init_enabled);
 }
 
 ImDrawList* Nameplate::GetDrawList()
@@ -59,11 +78,16 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
     if (config.DrawTestBar)
     {
         ImVec2 testBarPos{ 400, 450 };
-        ImVec2 testBarSize = ImVec2{ 512, 32 } * ImVec2{ 2.0f, 2.0f };
+        ImVec2 testBarSize = ImVec2{ 512, 64 } * ImVec2{ 2.0f, 2.0f };
         //ImVec4 margins{ 14,14,14,14 };
         ImVec4 margins{ 21,21,21,21 };
+        //ImVec4 margins{ 17,17,17,17 };
+
         g_maskedImage.RenderNineSlice(drawList, testBarPos, testBarPos + testBarSize, ImVec2{ 42,42 }, margins);
-        g_maskedImage2.Render(drawList, ImVec2{ 400,650 }, ImVec2{ 600,850 });
+        testBarPos += ImVec2{ 0, 150 };
+        g_maskedImage2.Render(drawList, testBarPos, testBarPos + ImVec2{ 64,64 });
+        testBarPos += ImVec2{ 0, 100 };
+        g_maskedImage3.RenderNineSlice(drawList, testBarPos, testBarPos + ImVec2{ 512, 64 }, ImVec2{ 42,42 }, margins);
     }
 
     float finalScale = config.ScaleWithDistance ? (1.0f/scale) : 1.0f * config.ScaleFactor;
@@ -94,21 +118,8 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
 
     m_targetPercent = std::clamp(percent, 0.0f, 100.0f) / 100.f;
 
-    if (m_trendDirection == 0)
-    {
-        m_trendDirection = 1;
-    }
-    else
-    {
-        // calculate which way hps are going from the last time we rendered.
-        if (m_targetPercent < m_smoothPercent)
-            m_trendDirection = -1;
-        else if (m_targetPercent >= m_smoothPercent)
-            m_trendDirection = 1;
-    }
-
-    m_smoothPercent = iam_tween_float(m_idHash, pct_id, percent, 0.5f,
-        iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt, m_targetPercent) / 100.0f;
+    m_smoothPercent = iam_tween_float(m_idHash, pct_id, m_targetPercent * 100.0f, 0.5f,
+        iam_ease_preset(iam_ease_linear), iam_policy_crossfade, dt, m_targetPercent * 100.0f) / 100.0f;
 
     if (m_pTextureBar && m_pTextureBar->IsValid())
     {

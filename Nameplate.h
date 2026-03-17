@@ -26,9 +26,11 @@ enum TextPositioning
 class Nameplate
 {
 public:
-    Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, mq::MQColor conColor);
-    Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, mq::MQColor conColor,
+    Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, float initPctHp, mq::MQColor conColor);
+    Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, float initPctHp, mq::MQColor conColor,
         const std::string& textureFrame, const std::string& textureBar);
+
+    void InitIamAnim();
 
     ImDrawList* GetDrawList();
 
@@ -54,17 +56,17 @@ public:
     mq::MQTexturePtr m_pTextureFrame;
     mq::MQTexturePtr m_pTextureBar;
 
-    float m_smoothPercent{0.0f};
-    float m_targetPercent{0.0f};
-    int   m_trendDirection{0};
-
     std::string m_id;
     ImGuiID m_idHash;
+
     mq::MQColor m_conColor;
     std::chrono::steady_clock::time_point m_lastRenderTime{};
     eqlib::PlayerClient* m_pSpawn;
     ImVec2 m_lastPosition{ 0.0f, 0.0f };
     int m_renderCount{ 0 };
+
+    float m_smoothPercent{ 0.0f };
+    float m_targetPercent{ 0.0f };
 };
 
 } // namespace Ui

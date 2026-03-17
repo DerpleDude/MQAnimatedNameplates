@@ -215,24 +215,25 @@ static void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style, bool alwa
     if (!alwaysVisible && !CanSeeNameplate(pSpawn))
         return;
 
+    Ui::Config& config = Ui::Config::Get();
+    const ImVec2 canvasSize(config.NameplateWidth, 50);
+
+    float pctHP = pSpawn->HPMax == 0 ? 0 : pSpawn->HPCurrent * 100.0f / pSpawn->HPMax;
+
     char hpBarID[32];
     sprintf_s(hpBarID, "TargetHPBar_%d", pSpawn->SpawnID);
     mq::MQColor conColor = GetColorForChatColor(ConColor(pSpawn));
 
     auto [it, inserted] =
-        s_nameplatesBySpawnId.try_emplace(pSpawn->SpawnID, hpBarID, pSpawn, conColor);
+        s_nameplatesBySpawnId.try_emplace(pSpawn->SpawnID, hpBarID, pSpawn, config.DrawTestBar ? config.BarPercent : pctHP, conColor);
 
     Ui::Nameplate& nameplate = it->second;
-    Ui::Config& config = Ui::Config::Get();
 
     float nameplateScale = 1.0f;
     ImVec2 targetNameplatePos;
 
     if (!GetNameplatePositionFromBones(pSpawn, targetNameplatePos, nameplateScale))
         return;
-
-    const ImVec2 canvasSize(config.NameplateWidth, 50);
-    float pctHP = pSpawn->HPMax == 0 ? 0 : pSpawn->HPCurrent * 100.0f / pSpawn->HPMax;
 
     nameplate.Render(targetNameplatePos, canvasSize, nameplateScale, config.DrawTestBar ? config.BarPercent : pctHP, style, pTarget == pSpawn);
 }

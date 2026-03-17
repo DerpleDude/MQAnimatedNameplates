@@ -9,6 +9,15 @@
 
 namespace Ui {
 
+static float RoundUpPow2(float v)
+{
+    int n = static_cast<int>(v);
+    if (n <= 0) return 1.0f;
+    n--;
+    n |= n >> 1; n |= n >> 2; n |= n >> 4; n |= n >> 8; n |= n >> 16;
+    return static_cast<float>(n + 1);
+}
+
 static const char* kMaskShaderSrc = R"(
 sampler2D srcTex   : register(s0);
 sampler2D maskTex  : register(s1);
@@ -188,22 +197,28 @@ void MaskedImage::RenderNineSlice(ImDrawList* dl, const ImVec2& min, const ImVec
     const float bottom = margins.w * sy;
 
     const ImVec2 srcSize  = m_pSource->GetTextureSize();
+    const ImVec2 maskTexSize = m_pMask->GetTextureSize();
 
-    const float srcUvX[4]  = { 0.0f, left / srcSize.x,  1.0f - right  / srcSize.x,  1.0f };
-    const float srcUvY[4]  = { 0.0f, top  / srcSize.y,  1.0f - bottom / srcSize.y,  1.0f };
-    
+    // D3D9 pads textures to power-of-2; scale UVs so we only sample actual image content.
+    const ImVec2 srcUvScale(
+        srcSize.x  / RoundUpPow2(srcSize.x),
+        srcSize.y  / RoundUpPow2(srcSize.y));
+    const ImVec2 maskUvScale(
+        maskTexSize.x / RoundUpPow2(maskTexSize.x),
+        maskTexSize.y / RoundUpPow2(maskTexSize.y));
+
     const float maskUvX[4] = {
         0.0f,
-        margins.x / maskSize.x,
-        (maskSize.x - margins.z) / maskSize.x,
-        1.0f
+        maskUvScale.x * margins.x / maskSize.x,
+        maskUvScale.x * (maskSize.x - margins.z) / maskSize.x,
+        maskUvScale.x
     };
 
     const float maskUvY[4] = {
         0.0f,
-        margins.y / maskSize.y,
-        (maskSize.y - margins.w) / maskSize.y,
-        1.0f
+        maskUvScale.y * margins.y / maskSize.y,
+        maskUvScale.y * (maskSize.y - margins.w) / maskSize.y,
+        maskUvScale.y
     };
 
     const float dX[4] = { min.x, min.x + left,   max.x - right,  max.x };
@@ -219,8 +234,12 @@ void MaskedImage::RenderNineSlice(ImDrawList* dl, const ImVec2& min, const ImVec
             if (destMax.x <= destMin.x || destMax.y <= destMin.y)
                 continue;
 
-            ImVec2 srcUvMin(srcUvX[col],     srcUvY[row]);
-            ImVec2 srcUvMax(srcUvX[col + 1], srcUvY[row + 1]);
+            ImVec2 srcUvMin(
+                srcUvScale.x * (dX[col]     - min.x) / destW,
+                srcUvScale.y * (dY[row]     - min.y) / destH);
+            ImVec2 srcUvMax(
+                srcUvScale.x * (dX[col + 1] - min.x) / destW,
+                srcUvScale.y * (dY[row + 1] - min.y) / destH);
 
             ImVec2 maskUvMin(maskUvX[col],     maskUvY[row]);
             ImVec2 maskUvMax(maskUvX[col + 1], maskUvY[row + 1]);
