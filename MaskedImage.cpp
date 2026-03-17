@@ -9,130 +9,339 @@
 
 namespace Ui {
 
-static const char* kMaskShaderSrc = R"(
-sampler2D srcTex   : register(s0);
-sampler2D maskTex  : register(s1);
+class PixelShader
+{
+public:
+    PixelShader(const char* source)
+        : m_shaderSource(source)
+    {
+    }
 
-float4 SrcRange  : register(c0);
-float4 MaskRange : register(c1);
+    ~PixelShader()
+    {
+    }
+
+    bool InitShader()
+    {
+        if (!gpD3D9Device)
+            return false;
+        if (m_pixelShader)
+            return true;
+
+        wil::com_ptr<ID3DBlob> code;
+        wil::com_ptr<ID3DBlob> err;
+
+        HRESULT hr = D3DCompile(m_shaderSource, strlen(m_shaderSource), nullptr, nullptr, nullptr,
+            "main", "ps_2_0", 0, 0, &code, &err);
+
+        if (FAILED(hr))
+        {
+            if (err)
+            {
+                //SPDLOG_ERROR("MaskedImage: shader compile error: {}",
+                //    static_cast<const char*>(err->GetBufferPointer()));
+                DebugSpewAlways("MaskedImage: shader compiler error: %s",
+                    static_cast<const char*>(err->GetBufferPointer()));
+            }
+            return false;
+        }
+
+        hr = gpD3D9Device->CreatePixelShader(static_cast<const DWORD*>(code->GetBufferPointer()), &m_pixelShader);
+        return SUCCEEDED(hr);
+    }
+
+    void Release()
+    {
+        m_pixelShader.reset();
+    }
+
+    IDirect3DPixelShader9* Get() const { return m_pixelShader.get(); }
+
+private:
+    const char* m_shaderSource;
+    wil::com_ptr<IDirect3DPixelShader9> m_pixelShader;
+};
+
+static constexpr const char* MASK_SHADER_SOURCE = R"(
+
+float4 maskRange  : register(c0);
+float4 maskMargin : register(c1);
+
+sampler sampler0 : register(s0);
+sampler maskSampler : register(s1);
 
 struct PS_INPUT
 {
-    float4 col : COLOR0;
+    float4 pos : POSITION;
+    float4 col : COLOR;
     float2 uv  : TEXCOORD0;
 };
 
+
 float4 main(PS_INPUT input) : COLOR
 {
-    float2 srcUv  = SrcRange.xy  + input.uv * (SrcRange.zw  - SrcRange.xy);
-    float2 maskUv = MaskRange.xy + input.uv * (MaskRange.zw - MaskRange.xy);
+    // Sample source texture with vertex color
+    float4 src = tex2D(sampler0, input.uv) * input.col;
 
-    float4 src  = tex2D(srcTex,  srcUv)  * input.col;
-    float4 mask = tex2D(maskTex, maskUv);
+    // Nine-slice UV remapping for mask texture.
+    // Each axis is split into three regions: low-border, center, high-border.
+    // Borders map 1:1 in UV space; center stretches to fill remaining space.
+    // When a margin is 0, that border region has zero width and is skipped.
+    float2 t = input.uv;
+
+    // --- X axis ---
+    float mL = maskMargin.x;   // left margin (UV)
+    float mR = maskMargin.z;   // right margin (UV)
+
+    float inLeftX   = 1.0 - step(mL, t.x);              // 1 if t.x < mL
+    float inRightX  = step(1.0 - mR, t.x);              // 1 if t.x >= 1-mR
+    float inCenterX = 1.0 - max(inLeftX, inRightX);
+
+    float leftUVx   = maskRange.x + t.x;                // 1:1 from range start
+    float rightUVx  = maskRange.z - (1.0 - t.x);        // 1:1 from range end
+    float cWidthX   = max(1.0 - mL - mR, 0.0001);       // input center width
+    float mCWidthX  = maskRange.z - maskRange.x - mL - mR; // mask center width
+    float centerUVx = maskRange.x + mL + ((t.x - mL) / cWidthX) * mCWidthX;
+
+    float maskU = inLeftX * leftUVx + inRightX * rightUVx + inCenterX * centerUVx;
+
+    // --- Y axis ---
+    float mT = maskMargin.y;   // top margin (UV)
+    float mB = maskMargin.w;   // bottom margin (UV)
+
+    float inTopY     = 1.0 - step(mT, t.y);
+    float inBottomY  = step(1.0 - mB, t.y);
+    float inCenterY  = 1.0 - max(inTopY, inBottomY);
+
+    float topUVy     = maskRange.y + t.y;
+    float bottomUVy  = maskRange.w - (1.0 - t.y);
+    float cWidthY    = max(1.0 - mT - mB, 0.0001);
+    float mCWidthY   = maskRange.w - maskRange.y - mT - mB;
+    float centerUVy  = maskRange.y + mT + ((t.y - mT) / cWidthY) * mCWidthY;
+
+    float maskV = inTopY * topUVy + inBottomY * bottomUVy + inCenterY * centerUVy;
+
+    // Sample mask and apply alpha
+    float4 mask = tex2D(maskSampler, float2(maskU, maskV));
 
     return src * mask.a;
 }
 )";
 
-static IDirect3DPixelShader9* s_pMaskPS    = nullptr;
-static IDirect3DPixelShader9* s_pSavedPS   = nullptr;
-static IDirect3DBaseTexture9* s_pSavedTex1 = nullptr;
+static PixelShader s_maskShader(MASK_SHADER_SOURCE);
 
-static bool InitMaskShader(IDirect3DDevice9* dev)
-{
-    if (s_pMaskPS)
-        return true;
-
-    ID3DBlob* code = nullptr;
-    ID3DBlob* err  = nullptr;
-
-    HRESULT hr = D3DCompile(
-        kMaskShaderSrc, strlen(kMaskShaderSrc),
-        nullptr, nullptr, nullptr,
-        "main", "ps_2_0", 0, 0,
-        &code, &err);
-
-    if (FAILED(hr))
-    {
-        if (err)
-        {
-            SPDLOG_ERROR("MaskedImage: shader compile error: {}",
-                static_cast<const char*>(err->GetBufferPointer()));
-            err->Release();
-        }
-        return false;
-    }
-    if (err)
-        err->Release();
-
-    hr = dev->CreatePixelShader(
-        static_cast<const DWORD*>(code->GetBufferPointer()), &s_pMaskPS);
-    code->Release();
-
-    return SUCCEEDED(hr);
-}
-
-struct MaskCbData
+struct MaskShaderData
 {
     ImTextureID maskTexId;
-    float       srcRange[4];
-    float       maskRange[4];
+    float maskRange[4];
+    float margins[4];
 };
 
-static void MaskBefore(const ImDrawList*, const ImDrawCmd* cmd)
+struct SavedShaderState
 {
-    if (!gpD3D9Device)
+    wil::com_ptr<IDirect3DPixelShader9> savedPixelShader;
+    wil::com_ptr<IDirect3DVertexShader9> savedVertexShader;
+    wil::com_ptr<IDirect3DBaseTexture9> savedTexture1;
+};
+
+static std::vector<SavedShaderState> s_savedMaskState;
+
+static void PushAlphaMaskState(const ImDrawList*, const ImDrawCmd* cmd)
+{
+    IDirect3DDevice9* pDevice = gpD3D9Device;
+
+    const MaskShaderData* data = static_cast<const MaskShaderData*>(cmd->UserCallbackData);
+    SavedShaderState& savedState = s_savedMaskState.emplace_back();
+
+    if (!s_maskShader.InitShader())
         return;
 
-    if (!InitMaskShader(gpD3D9Device))
-        return;
+    // Backup state
+    pDevice->GetPixelShader(&savedState.savedPixelShader);
+    pDevice->GetVertexShader(&savedState.savedVertexShader);
+    pDevice->GetTexture(1, &savedState.savedTexture1);
 
-    const auto* data = static_cast<const MaskCbData*>(cmd->UserCallbackData);
-
-    gpD3D9Device->GetPixelShader(&s_pSavedPS);
-    gpD3D9Device->GetTexture(1, &s_pSavedTex1);
-
-    gpD3D9Device->SetTexture(1, static_cast<IDirect3DTexture9*>(data->maskTexId));
-    gpD3D9Device->SetPixelShaderConstantF(0, data->srcRange,  1);
-    gpD3D9Device->SetPixelShaderConstantF(1, data->maskRange, 1);
-    gpD3D9Device->SetPixelShader(s_pMaskPS);
+    // Set our texture, shader, and constants
+    pDevice->SetTexture(1, static_cast<IDirect3DTexture9*>(data->maskTexId));
+    pDevice->SetPixelShaderConstantF(0, data->maskRange, 1);
+    pDevice->SetPixelShaderConstantF(1, data->margins, 1);
+    pDevice->SetPixelShader(s_maskShader.Get());
+    pDevice->SetVertexShader(nullptr);
 }
 
-static void MaskAfter(const ImDrawList*, const ImDrawCmd*)
+static void PopAlphaMaskState(const ImDrawList*, const ImDrawCmd*)
 {
-    if (!gpD3D9Device)
-        return;
+    IDirect3DDevice9* pDevice = gpD3D9Device;
+    IM_ASSERT(!s_savedMaskState.empty());
 
-    gpD3D9Device->SetPixelShader(s_pSavedPS);
-    if (s_pSavedPS)
+    SavedShaderState& savedState = s_savedMaskState.back();
+
+    if (pDevice)
     {
-        s_pSavedPS->Release();
-        s_pSavedPS = nullptr;
+        pDevice->SetPixelShader(savedState.savedPixelShader.get());
+        pDevice->SetVertexShader(savedState.savedVertexShader.get());
+        pDevice->SetTexture(1, savedState.savedTexture1.get());
     }
 
-    gpD3D9Device->SetTexture(1, s_pSavedTex1);
-    if (s_pSavedTex1)
-    {
-        s_pSavedTex1->Release();
-        s_pSavedTex1 = nullptr;
-    }
+    s_savedMaskState.pop_back();
 }
 
-static void AddMaskedImage(ImDrawList* dl,
-    ImTextureID srcTex,  const ImVec2& destMin, const ImVec2& destMax,
-    const ImVec2& srcUvMin,  const ImVec2& srcUvMax,
-    ImTextureID maskTex, const ImVec2& maskUvMin, const ImVec2& maskUvMax,
-    ImU32 tint)
+// Apply a clipping alpha mask to the current clip rect. The mask texture should be a grayscale image where
+// alpha at 100% means fully visible and alpha at 0% means fully clipped. Margins can be
+// used to specify the size of the unscaled border area for nine-slice scaling of the mask.
+static void PushAlphaMask(ImDrawList* dl, ImTextureID maskTexture, const ImVec2& uv_min, const ImVec2& uv_max,
+    const ImVec4& margins = ImVec4(0, 0, 0, 0))
 {
-    MaskCbData data{
-        maskTex,
-        { srcUvMin.x,  srcUvMin.y,  srcUvMax.x,  srcUvMax.y  },
-        { maskUvMin.x, maskUvMin.y, maskUvMax.x, maskUvMax.y }
+    MaskShaderData data
+    {
+        .maskTexId = maskTexture,
+        .maskRange = { uv_min.x, uv_min.y, uv_max.x, uv_max.y },
+        .margins = { margins.x, margins.y, margins.z, margins.w }
     };
-    dl->AddCallback(MaskBefore, &data, sizeof(data));
-    dl->AddImage(srcTex, destMin, destMax, ImVec2(0, 0), ImVec2(1, 1), tint);
-    dl->AddCallback(MaskAfter, nullptr);
+
+    dl->AddCallback(PushAlphaMaskState, &data, sizeof(data));
 }
+
+static void PopAlphaMask(ImDrawList* dl)
+{
+    dl->AddCallback(PopAlphaMaskState, nullptr, 0);
+}
+
+// --- Nine-slice shader ----------------------------------------------------------
+
+// Render an image using nine-slice scaling technique.
+// srcMargin = border sizes in source texture UV space (left, top, right, bottom)
+// dstMargin = border sizes in destination quad UV [0,1] space (left, top, right, bottom)
+static constexpr const char* NINE_SLICE_SHADER = R"(
+
+float4 srcMargin : register(c0);
+float4 dstMargin : register(c1);
+
+sampler sampler0 : register(s0);
+
+struct PS_INPUT
+{
+    float4 pos : POSITION;
+    float4 col : COLOR;
+    float2 uv  : TEXCOORD0;
+};
+
+float4 main(PS_INPUT input) : COLOR
+{
+    // Nine-slice UV remapping.
+    // Split input UV [0,1] into 3 regions using dstMargin as boundaries,
+    // then remap to source UV using srcMargin as the corresponding boundaries.
+    //   Left border:  [0, dL]       -> [0, sL]       (scale proportionally)
+    //   Center:       [dL, 1-dR]    -> [sL, 1-sR]    (stretch)
+    //   Right border: [1-dR, 1]     -> [1-sR, 1]     (scale proportionally)
+    float2 t = input.uv;
+
+    // --- X axis ---
+    float dL = dstMargin.x;
+    float dR = dstMargin.z;
+    float sL = srcMargin.x;
+    float sR = srcMargin.z;
+
+    float inLeftX   = 1.0 - step(dL, t.x);
+    float inRightX  = step(1.0 - dR, t.x);
+    float inCenterX = 1.0 - max(inLeftX, inRightX);
+
+    float leftUVx   = (t.x / max(dL, 0.0001)) * sL;
+    float rightUVx  = 1.0 - ((1.0 - t.x) / max(dR, 0.0001)) * sR;
+    float dCenterX   = max(1.0 - dL - dR, 0.0001);
+    float sCenterX   = max(1.0 - sL - sR, 0.0001);
+    float centerUVx = sL + ((t.x - dL) / dCenterX) * sCenterX;
+
+    float u = inLeftX * leftUVx + inRightX * rightUVx + inCenterX * centerUVx;
+
+    // --- Y axis ---
+    float dT = dstMargin.y;
+    float dB = dstMargin.w;
+    float sT = srcMargin.y;
+    float sB = srcMargin.w;
+
+    float inTopY    = 1.0 - step(dT, t.y);
+    float inBottomY = step(1.0 - dB, t.y);
+    float inCenterY = 1.0 - max(inTopY, inBottomY);
+
+    float topUVy    = (t.y / max(dT, 0.0001)) * sT;
+    float bottomUVy = 1.0 - ((1.0 - t.y) / max(dB, 0.0001)) * sB;
+    float dCenterY   = max(1.0 - dT - dB, 0.0001);
+    float sCenterY   = max(1.0 - sT - sB, 0.0001);
+    float centerUVy = sT + ((t.y - dT) / dCenterY) * sCenterY;
+
+    float v = inTopY * topUVy + inBottomY * bottomUVy + inCenterY * centerUVy;
+
+    float4 src = tex2D(sampler0, float2(u, v)) * input.col;
+    return src;
+}
+)";
+static PixelShader s_nineSliceShader(NINE_SLICE_SHADER);
+
+struct NineSliceShaderData
+{
+    float srcMargins[4];  // left, top, right, bottom in source texture UV
+    float dstMargins[4];  // left, top, right, bottom in dest quad UV [0,1]
+};
+
+static std::vector<SavedShaderState> s_saved9SliceState;
+
+static void PushNineSliceState(const ImDrawList*, const ImDrawCmd* cmd)
+{
+    IDirect3DDevice9* pDevice = gpD3D9Device;
+
+    const NineSliceShaderData* data = static_cast<const NineSliceShaderData*>(cmd->UserCallbackData);
+    SavedShaderState& savedState = s_saved9SliceState.emplace_back();
+
+    if (!s_nineSliceShader.InitShader())
+        return;
+
+    // Backup state
+    pDevice->GetPixelShader(&savedState.savedPixelShader);
+    pDevice->GetVertexShader(&savedState.savedVertexShader);
+
+    // Set our parameters: c0 = srcMargins, c1 = dstMargins
+    pDevice->SetPixelShaderConstantF(0, data->srcMargins, 1);
+    pDevice->SetPixelShaderConstantF(1, data->dstMargins, 1);
+    pDevice->SetPixelShader(s_nineSliceShader.Get());
+    pDevice->SetVertexShader(nullptr);
+}
+
+static void PopNineSliceState(const ImDrawList*, const ImDrawCmd*)
+{
+    IDirect3DDevice9* pDevice = gpD3D9Device;
+    IM_ASSERT(!s_saved9SliceState.empty());
+
+    SavedShaderState& savedState = s_saved9SliceState.back();
+
+    if (pDevice)
+    {
+        pDevice->SetPixelShader(savedState.savedPixelShader.get());
+        pDevice->SetVertexShader(savedState.savedVertexShader.get());
+    }
+
+    s_saved9SliceState.pop_back();
+}
+
+// Push state to apply a nine-slice scaling shader to subsequent draw calls.
+// srcMargins: border sizes as fraction of the source texture (pixelBorder / textureSize)
+// dstMargins: border sizes as fraction of the dest quad     (pixelBorder / destSize)
+static void PushNineSlice(ImDrawList* dl, const ImVec4& srcMargins, const ImVec4& dstMargins)
+{
+    NineSliceShaderData data
+    {
+        .srcMargins = { srcMargins.x, srcMargins.y, srcMargins.z, srcMargins.w },
+        .dstMargins = { dstMargins.x, dstMargins.y, dstMargins.z, dstMargins.w }
+    };
+
+    dl->AddCallback(PushNineSliceState, &data, sizeof(data));
+}
+
+static void PopNineSlice(ImDrawList* dl)
+{
+    dl->AddCallback(PopNineSliceState, nullptr, 0);
+}
+
 
 // --- MaskedImage ----------------------------------------------------------
 
@@ -153,12 +362,36 @@ void MaskedImage::Render(ImDrawList* dl, const ImVec2& min, const ImVec2& max, I
     if (!IsValid())
         return;
 
-    AddMaskedImage(dl,
-        m_pSource->GetTextureID(), min, max,
-        ImVec2(0, 0), ImVec2(1, 1),
-        m_pMask->GetTextureID(),
-        ImVec2(0, 0), ImVec2(1, 1),
-        tint);
+    // Pixel border size (in texels)
+    const float border = 17.0f;
+
+    // Source margins: border as fraction of source texture size
+    CXSize srcSize = m_pSource->GetTextureSize();
+    ImVec4 srcMargins(
+        border / srcSize.cx,
+        border / srcSize.cy,
+        border / srcSize.cx,
+        border / srcSize.cy
+    );
+
+    // Dest margins: border as fraction of destination quad size (in pixels)
+    float destW = max.x - min.x;
+    float destH = max.y - min.y;
+    ImVec4 dstMargins(
+        border / destW,
+        border / destH,
+        border / destW,
+        border / destH
+    );
+
+    dl->AddImage(m_pSource->GetTextureID(), min - ImVec2(0, 400), max - ImVec2(0, 400), ImVec2(0, 0), ImVec2(1, 1), tint);
+
+
+    PushNineSlice(dl, srcMargins, dstMargins);
+
+    dl->AddImage(m_pSource->GetTextureID(), min, max, ImVec2(0, 0), ImVec2(1, 1), tint);
+
+    PopNineSlice(dl);
 }
 
 void MaskedImage::RenderNineSlice(ImDrawList* dl, const ImVec2& min, const ImVec2& max, const ImVec2& maskSize, const ImVec4& margins, ImU32 tint) const
@@ -209,6 +442,8 @@ void MaskedImage::RenderNineSlice(ImDrawList* dl, const ImVec2& min, const ImVec
     const float dX[4] = { min.x, min.x + left,   max.x - right,  max.x };
     const float dY[4] = { min.y, min.y + top,    max.y - bottom, max.y };
 
+    PushAlphaMask(dl, m_pMask->GetTextureID(), ImVec2(0, 0), ImVec2(0.75f, 0.75f), ImVec4(17, 17, 17, 17));
+
     for (int row = 0; row < 3; ++row)
     {
         for (int col = 0; col < 3; ++col)
@@ -225,14 +460,11 @@ void MaskedImage::RenderNineSlice(ImDrawList* dl, const ImVec2& min, const ImVec
             ImVec2 maskUvMin(maskUvX[col],     maskUvY[row]);
             ImVec2 maskUvMax(maskUvX[col + 1], maskUvY[row + 1]);
 
-            AddMaskedImage(dl,
-                m_pSource->GetTextureID(), destMin, destMax,
-                srcUvMin, srcUvMax,
-                m_pMask->GetTextureID(),
-                maskUvMin, maskUvMax,
-                tint);
+            dl->AddImage(m_pSource->GetTextureID(), destMin, destMin, srcUvMin, srcUvMax, tint);
         }
     }
+
+    PopAlphaMask(dl);
 }
 
 void MaskedImage::RenderMask(ImDrawList* dl, const ImVec2& min, const ImVec2& max, ImU32 tint) const
@@ -297,11 +529,8 @@ void MaskedImage::RenderMaskNineSlice(ImDrawList* dl, const ImVec2& min, const I
 
 void MaskedImage::ReleaseShader()
 {
-    if (s_pMaskPS)
-    {
-        s_pMaskPS->Release();
-        s_pMaskPS = nullptr;
-    }
+    s_maskShader.Release();
+    s_nineSliceShader.Release();
 }
 
 } // namespace Ui
