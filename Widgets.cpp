@@ -191,6 +191,20 @@ bool AnimatedCheckbox(const char* label, bool* value)
     return pressed;
 }
 
+template <typename T>
+struct ImGuiDataTypeTraits {};
+template <> struct ImGuiDataTypeTraits<int8_t> { static constexpr ImGuiDataType Type = ImGuiDataType_S8; };
+template <> struct ImGuiDataTypeTraits<uint8_t> { static constexpr ImGuiDataType Type = ImGuiDataType_U8; };
+template <> struct ImGuiDataTypeTraits<int16_t> { static constexpr ImGuiDataType Type = ImGuiDataType_S16; };
+template <> struct ImGuiDataTypeTraits<uint16_t> { static constexpr ImGuiDataType Type = ImGuiDataType_U16; };
+template <> struct ImGuiDataTypeTraits<int32_t> { static constexpr ImGuiDataType Type = ImGuiDataType_S32; };
+template <> struct ImGuiDataTypeTraits<uint32_t> { static constexpr ImGuiDataType Type = ImGuiDataType_U32; };
+template <> struct ImGuiDataTypeTraits<int64_t> { static constexpr ImGuiDataType Type = ImGuiDataType_S64; };
+template <> struct ImGuiDataTypeTraits<uint64_t> { static constexpr ImGuiDataType Type = ImGuiDataType_U64; };
+template <> struct ImGuiDataTypeTraits<float> { static constexpr ImGuiDataType Type = ImGuiDataType_Float; };
+template <> struct ImGuiDataTypeTraits<double> { static constexpr ImGuiDataType Type = ImGuiDataType_Double; };
+
+
 template <typename T> requires std::is_integral_v<T> || std::is_floating_point_v<T>
 bool AnimatedSliderImpl(const char* label, T * slider_value, T slider_min, T slider_max, const char* format, float width)
 {
@@ -289,15 +303,10 @@ bool AnimatedSliderImpl(const char* label, T * slider_value, T slider_min, T sli
     dl->AddCircle(ImVec2(thumb_x, thumb_y), thumb_radius * thumb_scale, frame_color, 0, 2.0f);
 
     // Value text
-    char valueText[64];
-    sprintf_s(valueText, sizeof(valueText), format, *slider_value);
     ImGui::SetCursorScreenPos(ImVec2(track_x + thumb_radius + slider_width + style.ItemInnerSpacing.x, label_pos.y));
     ImGui::SetNextItemWidth(75);
-    if (ImGui::InputText("##input_value", valueText, sizeof(valueText), ImGuiInputTextFlags_CharsDecimal))
-    {
-        *slider_value = std::clamp(static_cast<T>(atof(valueText)), slider_min, slider_max);
+    if (ImGui::InputScalar("##input_value", ImGuiDataTypeTraits<T>::Type, slider_value, nullptr, nullptr, format))
         changed = true;
-    }
 
     ImGui::PopID();
 
@@ -347,7 +356,7 @@ bool AnimatedComboImpl(const char* label, T* value, int item_count,
     ImVec2 pos = ImGui::GetCursorScreenPos();
     float  btn_width = ImGui::CalcItemWidth();
     float  item_height = ImGui::GetTextLineHeight();
-    float  btn_height = item_height + style.FramePadding.y * 2.0f;
+    float  btn_height = ImGui::GetTextLineHeight() + style.FramePadding.y * 2.0f;
     ImVec2 label_size = ImGui::CalcTextSize(label);
 
     const ImRect total_bb(
@@ -371,15 +380,13 @@ bool AnimatedComboImpl(const char* label, T* value, int item_count,
     // Arrow
     float arrow_x = pos.x + btn_width - 20;
     float arrow_y = pos.y + btn_height * 0.5f;
-    float arrow_rot = iam_tween_float(animId, arrow_rot_id, animState.open ? 3.14159f : 0.0f, 0.2f,
-        iam_ease_preset(iam_ease_out_quad), iam_policy_crossfade, dt);
     dl->AddTriangleFilled(ImVec2(arrow_x - 5, arrow_y - 3 * (animState.open ? -1 : 1)),
         ImVec2(arrow_x + 5, arrow_y - 3 * (animState.open ? -1 : 1)),
         ImVec2(arrow_x, arrow_y + 5 * (animState.open ? -1 : 1)), IM_COL32(180, 180, 190, 255));
 
     // Dropdown menu
     float menu_height = iam_tween_float(animId, menu_height_id, animState.open ? item_count * item_height : 0.0f,
-        0.25f, iam_ease_preset(iam_ease_out_quad), iam_policy_crossfade, dt);
+        0.20f, iam_ease_preset(iam_ease_out_quad), iam_policy_crossfade, dt);
 
     if (menu_height > 1.0f)
     {

@@ -106,7 +106,7 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
     }
 
     m_smoothPercent = iam_tween_float(ImHashStr(m_id.c_str()), pct_id, percent, 0.5f,
-        iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt, m_targetPercent) / 100.0f;
+        iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt, percent) / 100.0f;
 
     if (m_pTextureBar && m_pTextureBar->IsValid())
     {
@@ -116,16 +116,16 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
     }
     else
     {
-        ImU32 hpLow  = IM_COL32(floor(0.8f * 255), floor(0.2f * 255), floor(0.2f * 255), 255);
-        ImU32 hpMid  = IM_COL32(floor(0.9f * 255), floor(0.7f * 255), floor(0.2f * 255), 255);
-        ImU32 hpHigh = IM_COL32(floor(0.2f * 255), floor(0.9f * 255), floor(0.2f * 255), 255);
+        ImU32 hpLow  = IM_COL32(204, 51,  51, 255);
+        ImU32 hpMid  = IM_COL32(230, 179, 51, 255);
+        ImU32 hpHigh = IM_COL32(51,  230, 51, 255);
 
         ImU32 highlightColor;
 
         switch (style)
         {
         case HPBarStyle_SolidRed:
-            hpLow = hpMid = hpHigh = IM_COL32(floor(0.8f * 255), floor(0.2f * 255), floor(0.2f * 255), 255);
+            hpLow = hpMid = hpHigh = IM_COL32(204, 51, 51, 255);
             highlightColor = currentTarget ? IM_COL32(255, 128, 0, 255) : IM_COL32(240, 80, 240, 255);
             break;
         case HPBarStyle_ConColor:
