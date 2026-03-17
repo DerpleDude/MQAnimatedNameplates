@@ -59,6 +59,7 @@ public:
     int   m_trendDirection{0};
 
     std::string m_id;
+    ImGuiID m_idHash;
     mq::MQColor m_conColor;
     std::chrono::steady_clock::time_point m_lastRenderTime{};
     eqlib::PlayerClient* m_pSpawn;

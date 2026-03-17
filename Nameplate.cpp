@@ -25,6 +25,7 @@ ImU32 ReduceAlpha(ImU32 col, float factor)
 
 Nameplate::Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, mq::MQColor conColor)
     : m_id(id)
+    , m_idHash(ImHashStr(id.c_str()))
     , m_conColor(conColor)
     , m_pSpawn(pSpawn)
 {
@@ -33,6 +34,7 @@ Nameplate::Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, mq::MQC
 Nameplate::Nameplate(const std::string& id, eqlib::PlayerClient* pSpawn, mq::MQColor conColor,
     const std::string& textureFrame, const std::string& textureBar)
     : m_id(id)
+    , m_idHash(ImHashStr(id.c_str()))
     , m_conColor(conColor)
     , m_pSpawn(pSpawn)
 {
@@ -105,7 +107,7 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
             m_trendDirection = 1;
     }
 
-    m_smoothPercent = iam_tween_float(ImHashStr(m_id.c_str()), pct_id, percent, 0.5f,
+    m_smoothPercent = iam_tween_float(m_idHash, pct_id, percent, 0.5f,
         iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt, m_targetPercent) / 100.0f;
 
     if (m_pTextureBar && m_pTextureBar->IsValid())
