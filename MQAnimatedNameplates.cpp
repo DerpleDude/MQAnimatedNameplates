@@ -234,7 +234,7 @@ static void DrawNameplates(PlayerClient* pSpawn, Ui::HPBarStyle style, bool alwa
     const ImVec2 canvasSize(config.NameplateWidth, 50);
     float pctHP = pSpawn->HPMax == 0 ? 0 : pSpawn->HPCurrent * 100.0f / pSpawn->HPMax;
 
-    nameplate.Render(targetNameplatePos, canvasSize, nameplateScale, pctHP, style, pTarget == pSpawn);
+    nameplate.Render(targetNameplatePos, canvasSize, nameplateScale, config.DrawTestBar ? config.BarPercent : pctHP, style, pTarget == pSpawn);
 }
 
 PLUGIN_API void InitializePlugin()

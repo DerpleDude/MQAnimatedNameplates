@@ -10,7 +10,7 @@
 
 namespace Ui {
 
-static MaskedImage g_maskedImage{ "energy_filler_gold.png", "BarBorders\\blizzard-cast-bar-square-mask.png" };
+static MaskedImage g_maskedImage{ "ruler.png", "BarBorders\\blizzard-cast-bar-square-mask.png" };
 static MaskedImage g_maskedImage2{ "fishface.png", "BarBorders\\blizzard-cast-bar-square-mask64.png" };
 
 static const ImGuiID pct_id = ImHashStr("pct_tween");
@@ -59,7 +59,7 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
         ImVec2 testBarPos{ 400, 450 };
         ImVec2 testBarSize = ImVec2{ 512, 32 } * ImVec2{ 2.0f, 2.0f };
         //ImVec4 margins{ 14,14,14,14 };
-        ImVec4 margins{ 17,17,17,17 };
+        ImVec4 margins{ 21,21,21,21 };
         g_maskedImage.RenderNineSlice(drawList, testBarPos, testBarPos + testBarSize, ImVec2{ 42,42 }, margins);
         g_maskedImage2.Render(drawList, ImVec2{ 400,650 }, ImVec2{ 600,850 });
     }
@@ -106,7 +106,7 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
     }
 
     m_smoothPercent = iam_tween_float(ImHashStr(m_id.c_str()), pct_id, percent, 0.5f,
-        iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt, percent) / 100.0f;
+        iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, dt, m_targetPercent) / 100.0f;
 
     if (m_pTextureBar && m_pTextureBar->IsValid())
     {
