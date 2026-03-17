@@ -96,6 +96,7 @@
   <ItemGroup>
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="ConfigVariable.cpp" />
+    <ClCompile Include="MaskedImage.cpp" />
     <ClCompile Include="NamePlate.cpp" />
     <ClCompile Include="MQAnimatedNameplates.cpp" />
     <ClCompile Include="SettingsPanel.cpp" />
@@ -104,6 +105,7 @@
   <ItemGroup>
     <ClInclude Include="Config.h" />
     <ClInclude Include="ConfigVariable.h" />
+    <ClInclude Include="MaskedImage.h" />
     <ClInclude Include="NamePlate.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="SettingsPanel.h" />

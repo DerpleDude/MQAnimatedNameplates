@@ -1,5 +1,6 @@
 #include "Nameplate.h"
 #include "Config.h"
+#include "MaskedImage.h"
 
 #include "eqlib/EQLib.h"
 #include "imgui/imgui_internal.h"
@@ -8,6 +9,9 @@
 #include "mq/Plugin.h"
 
 namespace Ui {
+
+static MaskedImage g_maskedImage{ "energy_filler_gold.png", "BarBorders\\blizzard-cast-bar-square-mask.png" };
+static MaskedImage g_maskedImage2{ "fishface.png", "BarBorders\\blizzard-cast-bar-square-mask.png" };
 
 static const ImGuiID pct_id = ImHashStr("pct_tween");
 
@@ -46,8 +50,19 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
 {
     // track the last render and clean up after 30s of non-usage.
     m_lastRenderTime = std::chrono::steady_clock::now();
-
+    
+    ImDrawList* drawList = Nameplate::GetDrawList();
     Ui::Config& config = Ui::Config::Get();
+
+    if (config.DrawTestBar)
+    {
+        ImVec2 testBarPos{ 400, 450 };
+        ImVec2 testBarSize = ImVec2{ 512, 32 } * ImVec2{ 2.0f, 2.0f };
+        ImVec4 margins{ 14, 14, 14, 14};
+        g_maskedImage.RenderNineSlice(drawList, testBarPos, testBarPos + testBarSize, margins);
+
+        g_maskedImage2.Render(drawList, ImVec2{ 400,650 }, ImVec2{ 600,850 });
+    }
 
     float finalScale = config.ScaleWithDistance ? (1.0f/scale) : 1.0f * config.ScaleFactor;
 
@@ -56,8 +71,6 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale,
     ImVec2 scaledFameSize = frameSize * ImVec2(finalScale, finalScale);
 
     ImGui::PushFont(nullptr, config.FontSize * finalScale);
-
-    ImDrawList* drawList = Nameplate::GetDrawList();
 
     const ImVec2 padding = ImGui::GetStyle().FramePadding;
     const ImVec2 barSize{

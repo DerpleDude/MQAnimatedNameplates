@@ -30,6 +30,9 @@
     <ClCompile Include="Widgets.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MaskedImage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
@@ -48,6 +51,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Widgets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MaskedImage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
