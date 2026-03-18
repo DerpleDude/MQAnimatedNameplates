@@ -52,18 +52,23 @@ void Nameplate::InitIamAnim()
 {
     float dt = ImGui::GetIO().DeltaTime;
 
-    bool lazy_init_enabled = iam_is_lazy_init_enabled();
-    iam_set_lazy_init(false);
-
-    m_smoothPercent = iam_tween_float(ImHashStr(m_id.c_str()), pct_id, m_targetPercent * 100.0f, 0.5f,
-        iam_ease_preset(iam_ease_linear), iam_policy_crossfade, dt, m_targetPercent * 100.0f) / 100.0f;
-
-    iam_set_lazy_init(lazy_init_enabled);
+    UpdateSmoothPercent(dt);
 }
 
 ImDrawList* Nameplate::GetDrawList()
 {
     return Ui::Config::Get().RenderToForeground ? ImGui::GetForegroundDrawList() : ImGui::GetBackgroundDrawList();
+}
+
+void Nameplate::UpdateSmoothPercent(float deltaTime)
+{
+    bool lazy_init_enabled = iam_is_lazy_init_enabled();
+    iam_set_lazy_init(false);
+
+    m_smoothPercent = iam_tween_float(ImHashStr(m_id.c_str()), pct_id, m_targetPercent * 100.0f, 0.5f,
+        iam_ease_preset(iam_ease_linear), iam_policy_crossfade, deltaTime, m_targetPercent * 100.0f) / 100.0f;
+
+    iam_set_lazy_init(lazy_init_enabled);
 }
 
 void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale)
@@ -118,8 +123,7 @@ void Nameplate::Render(ImVec2& center_pos, const ImVec2& frameSize, float scale)
 
     m_targetPercent = std::clamp(percent, 0.0f, 100.0f) / 100.f;
 
-    m_smoothPercent = iam_tween_float(m_idHash, pct_id, m_targetPercent * 100.0f, 0.5f,
-        iam_ease_preset(iam_ease_linear), iam_policy_crossfade, dt, m_targetPercent * 100.0f) / 100.0f;
+    UpdateSmoothPercent(dt);
 
     if (m_pTextureBar && m_pTextureBar->IsValid())
     {

@@ -64,6 +64,8 @@ public:
     bool IsInGroup() const;
     bool IsAutoHater() const;
 
+    void UpdateSmoothPercent(float deltaTime);
+
     Ui::HPBarStyle GetBarStyle() const;
 
     void SetNameplateType(Ui::NameplateType type);
