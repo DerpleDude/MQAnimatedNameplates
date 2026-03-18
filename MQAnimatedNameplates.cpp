@@ -380,10 +380,6 @@ PLUGIN_API void OnUpdateImGui()
             it->second.SetNameplateType(Ui::NameplateType_Self);
         }
 
-  
-
- 
-
         if (std::chrono::steady_clock::now() > s_lastRenderTime + SPAWN_SORT_INTERVAL)
         {
             // sort by furthest away
