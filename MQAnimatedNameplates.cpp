@@ -341,8 +341,7 @@ PLUGIN_API void OnUpdateImGui()
         {
             for (int i = 0; i < MAX_GROUP_SIZE; i++)
             {
-                CGroupMember* pGroupMember = pLocalPC->pGroupInfo->GetGroupMember(i);
-                if (pGroupMember && pGroupMember->GetPlayer())
+                if (CGroupMember* pGroupMember = pLocalPC->pGroupInfo->GetGroupMember(i); pGroupMember && pGroupMember->GetPlayer())
                 {
                     sprintf_s(hpBarID, "TargetHPBar_%d", pGroupMember->GetPlayer()->SpawnID);
                     auto [it, inserted] = s_nameplatesBySpawnId.try_emplace(pGroupMember->GetPlayer()->SpawnID, hpBarID, pGroupMember->GetPlayer());
