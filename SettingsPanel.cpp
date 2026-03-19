@@ -73,7 +73,7 @@ template <typename T> requires std::is_same_v<T, mq::MQColor>
 bool RenderOption(Ui::ConfigVariable<T>& variable, const char* labelText)
 {
     ImVec4 color = variable.get().ToImColor();
-    if (ImGui::ColorEdit3(labelText, (float*)&color.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+    if (ImGui::ColorEdit3(labelText, &color.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
     {
         variable.set(color);
         return true;
