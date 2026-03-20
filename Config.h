@@ -21,6 +21,18 @@ enum HPBarStyle
     HPBarStyle_Custom6,
 };
 
+enum NameplateType
+{
+    NameplateType_Invalid = -1,
+    NameplateType_Self,
+    NameplateType_Target,
+    NameplateType_Group,
+    NameplateType_AutoHater,
+    NameplateType_NPC,
+    NameplateType_PC,
+    NameplateType_Count
+};
+
 template <>
 struct config_enum_traits<HPBarStyle>
 {
@@ -55,6 +67,40 @@ public:
     ConfigVariable<mq::MQColor> TestColor{ *this, "TestColor", mq::MQColor(255,255,255) };
 };
 
+class NameplateConfigGroup : public ConfigGroup
+{
+public:
+    NameplateConfigGroup(ConfigContainer& container, std::string name)
+        : ConfigGroup(container, std::move(name))
+    {
+    }
+
+    ConfigVariable<HPBarStyle> HPBarStyle{ *this, "HPBarStyle", HPBarStyle_ColorRange };
+    ConfigVariable<bool> ShowLevel{ *this, "ShowLevel", true };
+    ConfigVariable<bool> ShowClass{ *this, "ShowClass", true };
+    ConfigVariable<bool> ShortClassName{ *this, "ShortClassName", true };
+    ConfigVariable<bool> ShowTargetIndicator{ *this, "ShowTargetIndicator", true };
+    ConfigVariable<float> TargetIndicatorPadding{ *this, "TargetIndicatorPadding", 8.0f, 0.0f, 16.0f };
+    ConfigVariable<float> TargetIndicatorBlinkSpeed{ *this, "TargetIndicatorBlinkSpeed", 0.75f, 0.0f, 4.0f };
+    
+    ConfigVariable<float> BarRounding{ *this, "BarRounding", 6.0f, 0.0f, 10.0f };
+    ConfigVariable<bool> DrawBarBorders{ *this, "DrawBarBorders", true };
+    ConfigVariable<mq::MQColor> BarBordersColor{ *this, "BarBordersColor", mq::MQColor(255,255,255) };
+    ConfigVariable<float> BarBorderThickness{ *this, "BarBorderThickness", 2.5f, 0.0f, 5.0f };
+
+    ConfigVariable<float> FontSize{ *this, "FontSize", 20.0f, 1.0f, 40.0f };
+    ConfigVariable<float> IconSize{ *this, "IconSize", 20.0f, 10.0f, 40.0f };
+    ConfigVariable<float> NameplateWidth{ *this, "NameplateWidth", 350.0f, 25.0f, 1500.0f };
+    ConfigVariable<float> NameplateHeight{ *this, "NameplateHeight", 25.0f, 5.0f, 500.0f };
+    ConfigVariable<int> HPTicks{ *this, "HPTicks", 10, 1, 25 };
+    ConfigVariable<float> NameplateHeightOffset{ *this, "NameplateHeightOffset", 35.0f, -200.0f, 400.0f };
+    ConfigVariable<float> ColorAlphaModifier{ *this, "ColorAlphaModifier", 1.0f, 0.1f, 1.0f };
+
+    ConfigVariable<float> ScaleFactor{ *this, "ScaleFactor", 1.0f, 0.1f, 10.0f };
+    ConfigVariable<float> MaxCalculatedScaleFactor{ *this, "MaxCalculatedScaleFactor", 1.10f, 0.1f, 10.0f };
+};
+
+
 class Config
 {
     Config();
@@ -83,17 +129,19 @@ public:
     ConfigVariable<bool> RenderForTarget{ m_container, "RenderForTarget", true };
     ConfigVariable<bool> RenderForAllHaters{ m_container, "RenderForAllHaters", true };
     ConfigVariable<bool> RenderForNPCs{ m_container, "RenderForNPCs", false };
+    ConfigVariable<bool> RenderForPCs{ m_container, "RenderForPCs", false };
+
+    // Per-type options
+    NameplateConfigGroup TargetNameplateOptions{ m_container, "TargetNameplateOptions" };
+    NameplateConfigGroup SelfNameplateOptions{ m_container, "SelfNameplateOptions" };
+    NameplateConfigGroup GroupNameplateOptions{ m_container, "GroupNameplateOptions" };
+    NameplateConfigGroup HatersNameplateOptions{ m_container, "HatersNameplateOptions" };
+    NameplateConfigGroup NPCNameplateOptions{ m_container, "NPCNameplateOptions" };
+    NameplateConfigGroup PCNameplateOptions{ m_container, "PCNameplateOptions" };
 
     // Optional display
     ConfigVariable<bool> ShowGuild{ m_container, "ShowGuild", false };
     ConfigVariable<bool> ShowPurpose{ m_container, "ShowPurpose", false };
-    ConfigVariable<bool> ShowLevel{ m_container, "ShowLevel", true };
-    ConfigVariable<bool> ShowClass{ m_container, "ShowClass", true };
-    ConfigVariable<bool> ShortClassName{ m_container, "ShortClassName", true };
-    ConfigVariable<bool> ShowTargetIndicator{ m_container, "ShowTargetIndicator", true };
-    ConfigVariable<float> TargetIndicatorPadding{ m_container, "TargetIndicatorPadding", 8.0f, 0.0f, 16.0f };
-    ConfigVariable<float> TargetIndicatorBlinkSpeed{ m_container, "TargetIndicatorBlinkSpeed", 0.75f, 0.0f, 4.0f };
-    ConfigVariable<bool> DrawBarBorders{ m_container, "DrawBarBorders", true };
 
     // Rendering behavior
     ConfigVariable<bool> RenderToForeground{ m_container, "RenderToForeground", false };
@@ -101,7 +149,6 @@ public:
     ConfigVariable<bool> RenderTargetNoLOS{ m_container, "RenderTargetNoLOS", false };
     ConfigVariable<float> MaxDrawDistance{ m_container, "MaxDrawDistance", 200.0f, 100.0f, 1000.0f };
     ConfigVariable<bool> ScaleWithDistance{ m_container, "ScaleWithDistance", true };
-    ConfigVariable<float> ColorAlphaModifier{ m_container, "ColorAlphaModifier", 1.0f, 0.1f, 1.0f };
 
     // Basic flags
     ConfigVariable<bool> ShowBuffIcons{ m_container, "ShowBuffIcons", true };
@@ -116,27 +163,10 @@ public:
     ConfigVariable<float> NameplateHeightScaleCoeff{ m_container, "NameplateHeightScaleCoeff", 0.3125f, 0.01f, 1.0f };
 
     // Layout / sizes
-    ConfigVariable<float> FontSize{ m_container, "FontSize", 20.0f, 1.0f, 40.0f };
-    ConfigVariable<float> IconSize{ m_container, "IconSize", 20.0f, 10.0f, 40.0f };
-    ConfigVariable<float> NameplateWidth{ m_container, "NameplateWidth", 500.0f, 25.0f, 1500.0f };
-    ConfigVariable<float> NameplateHeight{ m_container, "NameplateHeight", 50.0f, 5.0f, 500.0f };
-    ConfigVariable<int> HPTicks{ m_container, "HPTicks", 10, 1, 25 };
-    ConfigVariable<float> NameplateHeightOffset{ m_container, "NameplateHeightOffset", 35.0f, -200.0f, 400.0f };
-    ConfigVariable<float> ScaleFactor{ m_container, "ScaleFactor", 1.0f, 0.1f, 10.0f };
-    ConfigVariable<float> MaxCalculatedScaleFactor{ m_container, "MaxCalculatedScaleFactor", 1.10f, 0.1f, 10.0f };
-
-    // Bar appearance
-    ConfigVariable<float> BarRounding{ m_container, "BarRounding", 6.0f, 0.0f, 10.0f };
-    ConfigVariable<float> BarBorderThickness{ m_container, "BarBorderThickness", 2.5f, 0.0f, 5.0f };
-
-    // HP bar style
-    ConfigVariable<HPBarStyle> HPBarStyleSelf{ m_container, "HPBarStyleSelf", HPBarStyle_ColorRange };
-    ConfigVariable<HPBarStyle> HPBarStyleGroup{ m_container, "HPBarStyleGroup", HPBarStyle_ColorRange };
-    ConfigVariable<HPBarStyle> HPBarStyleTarget{ m_container, "HPBarStyleTarget", HPBarStyle_ColorRange };
-    ConfigVariable<HPBarStyle> HPBarStyleHaters{ m_container, "HPBarStyleHaters", HPBarStyle_ColorRange };
-    ConfigVariable<HPBarStyle> HPBarStyleNPCs{ m_container, "HPBarStyleNPCs", HPBarStyle_ColorRange };
-
-    ConfigVariable<mq::MQColor> CustomColor1{ m_container, "CustomColor1", mq::MQColor(255,255,255)};
+    ConfigVariable<mq::MQColor> ColorRangeLow{ m_container, "ColorRangeLow", mq::MQColor(204,51,51) };
+    ConfigVariable<mq::MQColor> ColorRangeMid{ m_container, "ColorRangeMid", mq::MQColor(230,179,51) };
+    ConfigVariable<mq::MQColor> ColorRangeHigh{ m_container, "ColorRangeHigh", mq::MQColor(51,230,51) };
+    ConfigVariable<mq::MQColor> CustomColor1{ m_container, "CustomColor1", mq::MQColor(255,255,255) };
     ConfigVariable<mq::MQColor> CustomColor2{ m_container, "CustomColor2", mq::MQColor(255,255,255) };
     ConfigVariable<mq::MQColor> CustomColor3{ m_container, "CustomColor3", mq::MQColor(255,255,255) };
     ConfigVariable<mq::MQColor> CustomColor4{ m_container, "CustomColor4", mq::MQColor(255,255,255) };

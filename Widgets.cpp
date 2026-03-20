@@ -214,6 +214,17 @@ bool AnimatedSliderImpl(const char* label, T * slider_value, T slider_min, T sli
     ImDrawList* dl = ImGui::GetWindowDrawList();
     bool changed = false;
 
+    if (*slider_value > slider_max)
+    {
+        *slider_value = slider_max;
+        changed = true;
+    }
+    if (*slider_value < slider_min)
+    {
+        *slider_value = slider_min;
+        changed = true;
+    }
+
     ImVec2      pos = ImGui::GetCursorScreenPos();
     ImGuiStyle& style = ImGui::GetStyle();
 
@@ -338,109 +349,26 @@ template <typename T>
 bool AnimatedComboImpl(const char* label, T* value, int item_count,
     std::function<T(int)>&& values_getter, std::function<const char* (int)>&& labels_getter)
 {
-    ImGuiID animId = ImHashStr(label);
     bool changed = false;
-
-    float dt = ImGui::GetIO().DeltaTime;
-    ImDrawList* dl = ImGui::GetWindowDrawList();
-    ImDrawList* tdl = ImGui::GetForegroundDrawList();
-
-    ImGuiStyle& style = ImGui::GetStyle();
-
-    auto& animState = s_comboAnimTimes[animId];
-    if (animState.open)
-        animState.open_time += dt;
-    else
-        animState.open_time = 0.0f;
-
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    float  btn_width = ImGui::CalcItemWidth();
-    float  item_height = ImGui::GetTextLineHeight();
-    float  btn_height = ImGui::GetTextLineHeight() + style.FramePadding.y * 2.0f;
-    ImVec2 label_size = ImGui::CalcTextSize(label);
-
-    const ImRect total_bb(
-        pos, pos + ImVec2(btn_width + (label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f),
-            label_size.y + style.FramePadding.y * 2.0f));
-
-    ImGui::PushID(label);
-
-    // Dropdown button
-    ImGui::InvisibleButton("dropdown_btn", ImVec2(btn_width, btn_height));
-    bool hovered = ImGui::IsItemHovered();
-
-    if (ImGui::IsItemClicked())
-        animState.open = !animState.open;
-
-    dl->AddRectFilled(pos, ImVec2(pos.x + btn_width, pos.y + btn_height),
-        hovered ? ImGui::GetColorU32(ImGuiCol_FrameBgHovered) : ImGui::GetColorU32(ImGuiCol_FrameBg), 4);
-    dl->AddText(ImVec2(pos.x + 10, pos.y + (btn_height - ImGui::GetFontSize()) * 0.5f), IM_COL32(255, 255, 255, 255),
-        labels_getter(*value));
-
-    // Arrow
-    float arrow_x = pos.x + btn_width - 20;
-    float arrow_y = pos.y + btn_height * 0.5f;
-    dl->AddTriangleFilled(ImVec2(arrow_x - 5, arrow_y - 3 * (animState.open ? -1 : 1)),
-        ImVec2(arrow_x + 5, arrow_y - 3 * (animState.open ? -1 : 1)),
-        ImVec2(arrow_x, arrow_y + 5 * (animState.open ? -1 : 1)), IM_COL32(180, 180, 190, 255));
-
-    // Dropdown menu
-    float menu_height = iam_tween_float(animId, menu_height_id, animState.open ? item_count * item_height : 0.0f,
-        0.20f, iam_ease_preset(iam_ease_out_quad), iam_policy_crossfade, dt);
-
-    if (menu_height > 1.0f)
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
+    if (ImGui::BeginCombo(label, labels_getter(*value)))
     {
-        ImVec2 menu_pos(pos.x, pos.y + btn_height + 2);
-        tdl->AddRectFilled(menu_pos, ImVec2(menu_pos.x + btn_width, menu_pos.y + menu_height),
-            IM_COL32(50, 55, 65, 255), 4);
-
         for (int i = 0; i < item_count; i++)
         {
-            float item_y = menu_pos.y + i * item_height;
-            if (item_y + item_height > menu_pos.y + menu_height)
-                break;
-
-            // Staggered fade in
-            float item_alpha = ImClamp((animState.open_time - i * 0.05f) * 5.0f, 0.0f, 1.0f);
-            float item_offset = (1.0f - item_alpha) * 10;
-
-            ImVec2 item_pos(menu_pos.x + 10 + item_offset, item_y + (item_height - ImGui::GetFontSize()) * 0.5f);
-            ImGui::SetCursorScreenPos(item_pos);
-
-            char labelTemp[32];
-            sprintf_s(labelTemp, "##menuitem%d", i);
-            ImGui::InvisibleButton(labelTemp, ImVec2(btn_width, item_height));
-
-            bool menu_hovered = ImGui::IsItemHovered();
-            bool active = ImGui::IsItemActive();
-
-            if (menu_hovered)
-            {
-                tdl->AddRectFilled(item_pos - ImVec2(10, 0),
-                    ImVec2(item_pos.x + btn_width - 10, item_pos.y + item_height),
-                    ImGui::GetColorU32(ImGuiCol_ButtonHovered) & 0xFFFFFF0A);
-            }
-
-            tdl->AddText(item_pos, IM_COL32(200, 200, 210, (int)(item_alpha * 255)), labels_getter(i));
-
-            if (active && ImGui::IsMouseClicked(0))
+            bool is_selected = (*value == values_getter(i));
+            if (ImGui::Selectable(labels_getter(i), is_selected))
             {
                 *value = values_getter(i);
                 changed = true;
-                animState.open = false;
                 break;
             }
+            if (is_selected)
+                ImGui::SetItemDefaultFocus();
         }
+        ImGui::EndCombo();
     }
 
-    // Label  text
-    dl->AddText(ImVec2(pos.x + btn_width + style.ItemInnerSpacing.x, pos.y), ImGui::GetColorU32(ImGuiCol_Text), label);
-
-    ImGui::PopID();
-
-    ImGui::SetCursorScreenPos(ImVec2(total_bb.Min.x, total_bb.Max.y));
-    ImGui::Dummy(ImVec2(1, 1));
-
+    ImGui::PopStyleVar();
     return changed;
 }
 

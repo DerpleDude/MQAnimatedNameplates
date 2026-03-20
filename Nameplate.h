@@ -23,16 +23,6 @@ enum TextPositioning
     TopCenter,
 };
 
-enum NameplateType
-{
-    NameplateType_Invalid = -1,
-    NameplateType_Self,
-    NameplateType_Target,
-    NameplateType_Group,
-    NameplateType_AutoHater,
-    NameplateType_NPC,
-};
-
 class Nameplate
 {
 public:
@@ -42,10 +32,10 @@ public:
 
     ImDrawList* GetDrawList();
 
-    void Render(ImVec2& center_pos, const ImVec2& frameSize, float scale);
+    void Render(const ImVec2& center_pos, const ImVec2& frameSize, float scale);
 
     void RenderAnimatedPercentageBar(const ImVec2& center_pos, const ImVec2& barSize, ImU32 colLow,
-        ImU32 colMid, ImU32 colHigh, ImU32 colHighlight);
+        ImU32 colMid, ImU32 colHigh);
 
     void RenderNameplateText(const ImVec2& left_pos, ImU32 color, const char* text);
 
@@ -61,14 +51,14 @@ public:
     bool IsCurrentTarget() const;
     bool IsInGroup() const;
     bool IsAutoHater() const;
-
-    Ui::HPBarStyle GetBarStyle() const;
+    
+    NameplateConfigGroup* GetConfig() const { return m_pConfigGroup; }
 
     void ResetRenderNameSpriteState();
 
     void SetNameplateType(Ui::NameplateType type);
     Ui::NameplateType GetNameplateType() const { return m_nameplateType; }
-    void GetNameplateColors(ImU32& lowOut, ImU32& midOut, ImU32& highOut, ImU32& highlightOut) const;
+    void GetNameplateColors(ImU32& lowOut, ImU32& midOut, ImU32& highOut) const;
 
     std::chrono::steady_clock::time_point GetLastRenderTime() const { return m_lastRenderTime; }
     eqlib::PlayerClient* GetSpawn() const { return m_pSpawn; }
@@ -92,6 +82,8 @@ public:
     float m_targetPercent{ 0.0f };
 
     bool m_originalDisplayNameplateState;
+
+    NameplateConfigGroup* m_pConfigGroup;
 };
 
 } // namespace Ui

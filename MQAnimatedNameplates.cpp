@@ -138,24 +138,6 @@ static bool ShouldRenderNameplate(Ui::Nameplate* pNameplate)
     }
 }
 
-static bool GetNameplatePositionFromSpawnPosition(PlayerClient* pSpawn, ImVec2& outCoords)
-{
-    CCamera* camera = static_cast<eqlib::CCamera*>(pDisplay->pCamera);
-    if (!camera)
-        return false;
-
-    const CVector3 targetPos(pSpawn->Y, pSpawn->X, pSpawn->Z + pSpawn->Height);
-
-    float outPosX, outPosY;
-    if (camera->ProjectWorldCoordinatesToScreen(targetPos, outPosX, outPosY))
-    {
-        outCoords = ImVec2{ outPosX, outPosY - Ui::Config::Get().NameplateHeightOffset };
-        return true;
-    }
-
-    return false;
-}
-
 static float GetBoneScaleOffset(CBoneInterface* bone)
 {
     std::string_view tag = bone->GetTag();
@@ -238,19 +220,8 @@ static bool GetNameplatePositionFromBones(PlayerClient* pSpawn, ImVec2& outCoord
     float Wx1 = Ex * reci * camera->halfRenderWidth + xoffset;
     float Wy1 = -Ey * reci * camera->halfRenderHeight + yoffset;
 
-    outCoords = ImVec2{ Wx1, Wy1 - (config.NameplateHeightOffset - 35.0f) };
+    outCoords = ImVec2{ Wx1, Wy1 };
     return true;
-}
-
-Ui::HPBarStyle GetCategoryForSpawn(PlayerClient* pSpawn)
-{
-    auto it = s_nameplatesBySpawnId.find(pSpawn->SpawnID);
-    if (it == s_nameplatesBySpawnId.end())
-    {
-        return Ui::HPBarStyle_Invalid;
-    }
-
-    return it->second.GetBarStyle();
 }
 
 static bool DrawNameplate(Ui::Nameplate* pNameplate, bool alwaysVisible = false)
@@ -264,8 +235,8 @@ static bool DrawNameplate(Ui::Nameplate* pNameplate, bool alwaysVisible = false)
     if (!ShouldRenderNameplate(pNameplate))
         return false;
 
-    Ui::Config& config = Ui::Config::Get();
-    const ImVec2 canvasSize(config.NameplateWidth, config.NameplateHeight);
+    auto* pNameplateConfig = pNameplate->GetConfig();
+    const ImVec2 canvasSize(pNameplateConfig->NameplateWidth, pNameplateConfig->NameplateHeight);
 
     float nameplateScale = 1.0f;
     ImVec2 targetNameplatePos;
@@ -324,12 +295,13 @@ PLUGIN_API void OnUpdateImGui()
         Ui::Config& config = Ui::Config::Get();
 
         // reverse order so that nameplates get the highest prioirity ID
-        if (config.RenderForNPCs)
+        if (config.RenderForNPCs || config.RenderForPCs)
         {
             PlayerClient* pSpawn = pSpawnManager->FirstSpawn;
             while (pSpawn)
             {
-                if (GetSpawnType(pSpawn) == NPC)
+                if ((config.RenderForNPCs && GetSpawnType(pSpawn) == NPC) 
+                    || (config.RenderForPCs && GetSpawnType(pSpawn) == PC))
                 {
                     auto [it, inserted] = s_nameplatesBySpawnId.try_emplace(pSpawn->SpawnID, pSpawn);
                     if (inserted)

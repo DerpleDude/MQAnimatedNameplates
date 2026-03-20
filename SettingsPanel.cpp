@@ -97,6 +97,67 @@ void RenderTestGroup(Ui::TestConfigGroup& group)
     ImGui::PopID();
 }
 
+void RenderNameplateConfigGroup(Ui::NameplateConfigGroup& group, const char* label)
+{
+    ImGui::PushID(&group);
+    if (ImGui::CollapsingHeader(label))
+    {
+        ImGui::Indent();
+        float sliderLabelWidth = 150;
+        RenderOption(group.HPBarStyle, "HP Bar Style");
+        
+        ImGui::NewLine();
+        ImGui::SeparatorText("Additional Info");
+        ImGui::NewLine();
+
+        RenderOption(group.ShowLevel, "Show Level");
+        RenderOption(group.ShowClass, "Show Class");
+        ImGui::Indent();
+        ImGui::BeginDisabled(!group.ShowClass);
+        RenderOption(group.ShortClassName, "Short Class Name");
+        ImGui::EndDisabled();
+        ImGui::Unindent();
+
+        ImGui::NewLine();
+        ImGui::SeparatorText("Target Indicator");
+        ImGui::NewLine();
+
+        RenderOption(group.ShowTargetIndicator, "Show Target Indicator");
+        RenderOption(group.TargetIndicatorPadding, "Indicator Padding", sliderLabelWidth, "%.0f");
+        RenderOption(group.TargetIndicatorBlinkSpeed, "Indicator Blink Speed", sliderLabelWidth, "%.2f");
+        
+        ImGui::NewLine();
+        ImGui::SeparatorText("Style & Borders");
+        ImGui::NewLine();
+
+        RenderOption(group.BarRounding, "Bar Rounding", sliderLabelWidth, "%.1f");
+        RenderOption(group.DrawBarBorders, "Draw Bar Borders");
+        ImGui::SameLine();
+        ImGui::BeginDisabled(!group.DrawBarBorders);
+        RenderOption(group.BarBordersColor, "Bar Border Color");
+        RenderOption(group.BarBorderThickness, "Bar Border Thickness", sliderLabelWidth, "%.1f");
+        ImGui::EndDisabled();
+        RenderOption(group.ColorAlphaModifier, "Bar Alpha Modifier", sliderLabelWidth, "%.2f");
+        
+        ImGui::NewLine();
+
+        RenderOption(group.NameplateWidth, "Nameplate Width", sliderLabelWidth, "%0.f");
+        RenderOption(group.NameplateHeight, "Nameplate Height", sliderLabelWidth, "%0.f");
+        RenderOption(group.NameplateHeightOffset, "Nameplate Height Offset", sliderLabelWidth, "%.0f");
+
+        ImGui::NewLine();
+
+        RenderOption(group.HPTicks, "HP Ticks Every [x]%", sliderLabelWidth);
+        RenderOption(group.FontSize, "Font Size", sliderLabelWidth, "%.1f");
+        RenderOption(group.IconSize, "Icon Size", sliderLabelWidth, "%.1f");
+        ImGui::NewLine();
+        RenderOption(group.ScaleFactor, "Overall Scale Factor", sliderLabelWidth, "%.2f");
+        RenderOption(group.MaxCalculatedScaleFactor, "Max Scale Factor", sliderLabelWidth, "%.2f");
+        ImGui::Unindent();
+    }
+    ImGui::PopID();
+}
+
 class SettingsPanel
 {
 public:
@@ -104,7 +165,7 @@ public:
     {
         tabs.emplace_back(0, "Targeting", [this]() { DrawTargetingTab(); });
         tabs.emplace_back(1, "Look and Feel", [this]() { DrawLookAndFeelTab(); });
-        tabs.emplace_back(2, "Size and Positioning", [this]() { DrawSizeAndPositioningTab(); });
+        tabs.emplace_back(2, "Rendering Options", [this]() { DrawRenderingOptionsTab(); });
         tabs.emplace_back(3, "Dev and Debug", [this]() { DrawDevAndDebugTab(); });
 
         Ui::Config& config = Ui::Config::Get();
@@ -119,6 +180,7 @@ public:
 
         RenderOption(config.RenderForSelf, "Show For Self");
         RenderOption(config.RenderForGroup, "Show For Group");
+        RenderOption(config.RenderForPCs, "Show For All PCs");
         RenderOption(config.RenderForTarget, "Show For Target");
         RenderOption(config.RenderForAllHaters, "Show For All Haters");
         RenderOption(config.RenderForNPCs, "Show For All NPCs");
@@ -128,12 +190,22 @@ public:
     {
         Ui::Config& config = Ui::Config::Get();
 
-        RenderOption(config.HPBarStyleSelf, "Self HP Bar Style");
-        RenderOption(config.HPBarStyleTarget, "Target HP Bar Style");
-        RenderOption(config.HPBarStyleGroup, "Group HP Bar Style");
-        RenderOption(config.HPBarStyleHaters, "Haters HP Bar Style");
-        RenderOption(config.HPBarStyleNPCs, "NPCs HP Bar Style");
+        RenderNameplateConfigGroup(config.SelfNameplateOptions, "Nameplate Options for Self");
+        RenderNameplateConfigGroup(config.TargetNameplateOptions, "Nameplate Options for Target");
+        RenderNameplateConfigGroup(config.GroupNameplateOptions, "Nameplate Options for Group");
+        RenderNameplateConfigGroup(config.HatersNameplateOptions, "Nameplate Options for Auto Haters");
+        RenderNameplateConfigGroup(config.PCNameplateOptions, "Nameplate Options for PCs");
+        RenderNameplateConfigGroup(config.NPCNameplateOptions, "Nameplate Options for NPCs");
 
+        ImGui::NewLine();
+        ImGui::SeparatorText("Color Range Colors");
+        ImGui::NewLine();
+        RenderOption(config.ColorRangeLow, "Color Low");
+        RenderOption(config.ColorRangeMid, "Color Mid");
+        RenderOption(config.ColorRangeHigh, "Color High");
+
+        ImGui::NewLine();
+        ImGui::SeparatorText("Custom Colors");
         ImGui::NewLine();
 
         RenderOption(config.CustomColor1, "Custom Color 1");
@@ -144,59 +216,33 @@ public:
         RenderOption(config.CustomColor6, "Custom Color 6");
         
         ImGui::NewLine();
-        RenderOption(config.ColorAlphaModifier, "Color Alpha Modifier", 150, "%.2f");
 
 
         ImGui::NewLine();
-        ImGui::Separator();
+        ImGui::SeparatorText("Global Options");
         ImGui::NewLine();
 
-        RenderOption(config.ShowClass, "Show Class");
-        ImGui::Indent();
-        RenderOption(config.ShortClassName, "Short Class Name");
-        ImGui::Unindent();
-
-        RenderOption(config.ShowLevel, "Show Level");
-        RenderOption(config.ShowGuild, "Show Guild");
+        RenderOption(config.ShowGuild, "Show Guild Names");
         RenderOption(config.ShowPurpose, "Show Purpose");
-        RenderOption(config.ShowBuffIcons, "Show Buff Icons");
-
-        ImGui::NewLine();
-        ImGui::Separator();
-        ImGui::NewLine();
-        
-        RenderOption(config.ScaleWithDistance, "Scale With Distance");
-        RenderOption(config.DrawBarBorders, "Draw Bar Borders");
-        
-        ImGui::NewLine();
-
-        RenderOption(config.ShowTargetIndicator, "Show Target Indicator");
-        RenderOption(config.TargetIndicatorPadding, "Indicator Padding", 150, "%.0f");
-        RenderOption(config.TargetIndicatorBlinkSpeed, "Indicator Blink Speed", 150, "%.2f");
+        RenderOption(config.ShowBuffIcons, "Show Target Buff Icons");
     }
 
-    void DrawSizeAndPositioningTab()
+    void DrawRenderingOptionsTab()
     {
         Ui::Config& config = Ui::Config::Get();
 
-        float sliderLabelWidth = ImGui::CalcTextSize("Nameplate Height Offset").x;
-
-        RenderOption(config.NameplateWidth, "Nameplate Width", sliderLabelWidth, "%0.f");
-        RenderOption(config.NameplateHeight, "Nameplate Height", sliderLabelWidth, "%0.f");
-
-        RenderOption(config.NameplateHeightOffset, "Nameplate Height Offset", sliderLabelWidth, "%.0f");
-        RenderOption(config.HPTicks, "HP Ticks Every [x]%", sliderLabelWidth);
-        RenderOption(config.FontSize, "Font Size", sliderLabelWidth, "%.1f");
-        RenderOption(config.IconSize, "Icon Size", sliderLabelWidth, "%.1f");
-        RenderOption(config.BarRounding, "Bar Rounding", sliderLabelWidth, "%.1f");
-        RenderOption(config.BarBorderThickness, "Bar Border Thickness", sliderLabelWidth, "%.1f");
+        float sliderLabelWidth = 250;
 
         ImGui::NewLine();
 
         RenderOption(config.RenderToForeground, "Render To Foreground");
-        RenderOption(config.RenderNoLOS, "Render Even When Occluded");
         RenderOption(config.RenderTargetNoLOS, "Render Target Even When Occluded");
+        RenderOption(config.RenderNoLOS, "Render All Even When Occluded");
         RenderOption(config.MaxDrawDistance, "Maximum Draw Distance");
+
+        ImGui::NewLine();
+
+        RenderOption(config.ScaleWithDistance, "Scale With Distance");
     }
 
     void DrawDevAndDebugTab()
@@ -218,10 +264,6 @@ public:
         RenderOption(config.ScaleFactorAdjustment, "Scale Factor Adjustment", sliderLabelWidth, "%.05f");
         RenderOption(config.NameplateHeightAdjust, "Nameplate Height Adjustment", sliderLabelWidth);
         RenderOption(config.NameplateHeightScaleCoeff, "Nameplate Scale Coefficient", sliderLabelWidth);
-
-        ImGui::NewLine();
-        RenderOption(config.ScaleFactor, "Overall Scale Factor", sliderLabelWidth, "%.2f");
-        RenderOption(config.MaxCalculatedScaleFactor, "Max Scale Factor", sliderLabelWidth, "%.2f");
 
         ImGui::NewLine();
 
