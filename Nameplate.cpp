@@ -483,7 +483,7 @@ bool Nameplate::IsCurrentTarget() const
 
 bool Nameplate::IsInGroup() const
 {
-    if (pLocalPC->pGroupInfo)
+    if (!pLocalPC->pGroupInfo)
         return false;
 
     return pLocalPC->pGroupInfo->GetGroupMember(m_pSpawn) != nullptr;
