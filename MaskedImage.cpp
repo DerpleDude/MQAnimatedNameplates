@@ -9,6 +9,8 @@
 
 namespace Ui {
 
+#if HAS_DIRECTX_9
+
 static float RoundUpPow2(float v)
 {
     int n = static_cast<int>(v);
@@ -143,6 +145,8 @@ static void AddMaskedImage(ImDrawList* dl,
     dl->AddCallback(MaskAfter, nullptr);
 }
 
+#endif // HAS_DIRECTX_9
+
 // --- MaskedImage ----------------------------------------------------------
 
 MaskedImage::MaskedImage(const std::string& sourcePath, const std::string& maskPath)
@@ -162,12 +166,14 @@ void MaskedImage::Render(ImDrawList* dl, const ImVec2& min, const ImVec2& max, I
     if (!IsValid())
         return;
 
+#if HAS_DIRECTX_9
     AddMaskedImage(dl,
         m_pSource->GetTextureID(), min, max,
         ImVec2(0, 0), ImVec2(1, 1),
         m_pMask->GetTextureID(),
         ImVec2(0, 0), ImVec2(1, 1),
         tint);
+#endif
 }
 
 void MaskedImage::RenderNineSlice(ImDrawList* dl, const ImVec2& min, const ImVec2& max, const ImVec2& maskSize, const ImVec4& margins, ImU32 tint) const
@@ -175,6 +181,7 @@ void MaskedImage::RenderNineSlice(ImDrawList* dl, const ImVec2& min, const ImVec
     if (!IsValid())
         return;
 
+#if HAS_DIRECTX_9
     const float destW = max.x - min.x;
     const float destH = max.y - min.y;
 
@@ -252,6 +259,7 @@ void MaskedImage::RenderNineSlice(ImDrawList* dl, const ImVec2& min, const ImVec
                 tint);
         }
     }
+#endif
 }
 
 void MaskedImage::RenderMask(ImDrawList* dl, const ImVec2& min, const ImVec2& max, ImU32 tint) const
@@ -316,11 +324,13 @@ void MaskedImage::RenderMaskNineSlice(ImDrawList* dl, const ImVec2& min, const I
 
 void MaskedImage::ReleaseShader()
 {
+#if HAS_DIRECTX_9
     if (s_pMaskPS)
     {
         s_pMaskPS->Release();
         s_pMaskPS = nullptr;
     }
+#endif // HAS_DIRECTX_9
 }
 
 } // namespace Ui
