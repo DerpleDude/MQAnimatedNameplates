@@ -172,8 +172,17 @@ void Nameplate::Render(const ImVec2& center_pos, const ImVec2& frameSize, float 
 
     // Calc the next 2 elements and see if we overlap.
 
+    char displayNameBuffer[256];
+    const char* displayName = m_pSpawn->DisplayedName;
+
+    if (m_pSpawn->HideMode)
+    {
+        sprintf_s(displayNameBuffer, "(%s)", m_pSpawn->DisplayedName);
+        displayName = displayNameBuffer;
+    }
+
     float nameTextWidth = 0.0f;
-    ImVec2 nameTextPos = m_getTextPosition(TextPositioning::TopLeft, textLinePos, barSize.x, m_pSpawn->DisplayedName, nameTextWidth);
+    ImVec2 nameTextPos = m_getTextPosition(TextPositioning::TopLeft, textLinePos, barSize.x, displayName, nameTextWidth);
 
     std::string targetLevel = fmt::format("{}", m_pSpawn->GetLevel());
     float levelTextWidth = 0.0f;
@@ -208,15 +217,6 @@ void Nameplate::Render(const ImVec2& center_pos, const ImVec2& frameSize, float 
     //
     // Name Text
     //
-    char displayName[256];
-    if (m_pSpawn->HideMode)
-    {
-        snprintf(displayName, sizeof(displayName), "(%s)", m_pSpawn->DisplayedName);
-    }
-    else
-    {
-        snprintf(displayName, sizeof(displayName), "%s", m_pSpawn->DisplayedName);
-    }
 
     RenderNameplateText(nameTextPos, textColor, displayName);
     topLeft = nameTextPos;
