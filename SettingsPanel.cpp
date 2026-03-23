@@ -144,10 +144,11 @@ void RenderNameplateConfigGroup(Ui::NameplateConfigGroup& group, const char* lab
 
 void RenderNameplateStyleConfigGroup(Ui::NameplateStyleConfigGroup& group, const char* label)
 {
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(52,52,52,52));
     ImGui::PushID(&group);
     if (ImGui::CollapsingHeader(label))
     {
-        ImGui::Indent();
+        ImGui::BeginChild("StyleChild", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_AlwaysAutoResize);
         float sliderLabelWidth = 150;
         RenderOption(group.HPBarStyle, "HP Bar Style");
         if (group.HPBarStyle.get() == Ui::HPBarStyle_Custom)
@@ -201,9 +202,10 @@ void RenderNameplateStyleConfigGroup(Ui::NameplateStyleConfigGroup& group, const
         ImGui::NewLine();
         RenderOption(group.ScaleFactor, "Overall Scale Factor", sliderLabelWidth, "%.2f");
         RenderOption(group.MaxCalculatedScaleFactor, "Max Scale Factor", sliderLabelWidth, "%.2f");
-        ImGui::Unindent();
+        ImGui::EndChild();
     }
     ImGui::PopID();
+    ImGui::PopStyleColor();
 }
 
 Ui::NameplateStyleConfigGroup& Ui::NameplateConfigGroup::GetStyle()
@@ -336,6 +338,8 @@ public:
 
 void Ui::RenderSettingsPanel()
 {
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 3.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 3.0f);
     ImGui::BeginChild(
         "##AnimatedNameplatesSettings",
         ImVec2(std::max(ImGui::GetContentRegionAvail().x, 400.0f), std::max(ImGui::GetContentRegionAvail().y, 250.0f)),
@@ -425,5 +429,6 @@ void Ui::RenderSettingsPanel()
     ImGui::SetCursorScreenPos(ImVec2(tabs_pos.x, content_pos.y + content_size.y));
     ImGui::Dummy(ImVec2(0.0f, 0.0f));
     ImGui::EndChild();
+    ImGui::PopStyleVar(2);
 }
 
