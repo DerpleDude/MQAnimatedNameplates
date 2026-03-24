@@ -101,7 +101,7 @@ void ResolveNameplateLabels()
 {
     // setup the new vector of labels
     s_NameplateStyleLabels.clear();
-    for (auto& style : Ui::Config::Get().NameplateStyles.StyleDefinitionsMap | std::views::values)
+    for (auto& style : Ui::Config::Get().NameplateStyles.StyleDefinitions)
     {
         s_NameplateStyleLabels.push_back(style.getKey());
     }
@@ -143,13 +143,13 @@ void RenderNameplateConfigGroup(Ui::NameplateConfigGroup& group, const char* lab
     ImGui::PopID();
 }
 
-void RenderNameplateStyleConfigGroup(Ui::NameplateStyleConfigGroup& group, const char* label)
+void RenderNameplateStyleConfigGroup(Ui::NameplateStyleDefinition& group, const char* label)
 {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(52,52,52,52));
     ImGui::PushID(&group);
     if (ImGui::CollapsingHeader(label))
     {
-        ImGui::BeginChild("StyleChild", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::BeginChild("StyleChild", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY | ImGuiWindowFlags_AlwaysAutoResize);
         float sliderLabelWidth = 150;
         RenderOption(group.HPBarStyle, "HP Bar Style");
         if (group.HPBarStyle.get() == Ui::HPBarStyle_Custom)
@@ -209,27 +209,43 @@ void RenderNameplateStyleConfigGroup(Ui::NameplateStyleConfigGroup& group, const
     ImGui::PopStyleColor();
 }
 
-Ui::NameplateStyleConfigGroup& Ui::NameplateConfigGroup::GetStyle()
+Ui::NameplateStyleDefinition& Ui::NameplateConfigGroup::GetStyle()
 {
     auto& config = Config::Get();
 
-    // lazy init default.
-    if (config.NameplateStyles.StyleDefinitionsMap.empty())
-    {
-        // ensure there's always at least one style to reference
-        config.NameplateStyles.StyleDefinitionsMap.try_emplace(0, config.NameplateStyles, "Nameplate Style Default");
-        config.NameplateStyles.StyleCount.set(config.NameplateStyles.StyleDefinitionsMap.size());
-        ResolveNameplateLabels();
-    }
-
-    const auto& it = config.NameplateStyles.StyleDefinitionsMap.find(NameplateConfigStyle);
-    if (it == config.NameplateStyles.StyleDefinitionsMap.end())
+    if (NameplateConfigStyle >= config.NameplateStyles.StyleDefinitions.size())
     {
         NameplateConfigStyle.set(0);
-        return config.NameplateStyles.StyleDefinitionsMap.begin()->second;
+        return config.NameplateStyles.StyleDefinitions[0];
     }
 
-    return it->second;
+    return config.NameplateStyles.StyleDefinitions[NameplateConfigStyle];
+}
+
+void Ui::NameplateStylesContainer::OnLoaded()
+{
+    // ensure we have everything loaded including our dynamic styles.
+    if (StyleCount.get() != StyleDefinitions.size())
+    {
+        for (uint32_t i = 0; i <= StyleCount.get(); ++i)
+        {
+            StyleDefinitions.emplace_back(*this, i == 0 ? "Nameplate Style Default" : fmt::format("Nameplate Style {}", i));
+            StyleDefinitions.back().Load(GetNode());
+        }
+
+    }
+    //ResolveNameplateLabels();
+}
+
+void Ui::NameplateStylesContainer::AddNewStyle()
+{
+    StyleCount.set(StyleDefinitions.size() + 1);
+
+    StyleDefinitions.emplace_back(*this, fmt::format("Nameplate Style {}", StyleCount.get()));
+    StyleDefinitions.back().SetDirty(true);
+    Config::Get().SaveSettings();
+
+    ResolveNameplateLabels();
 }
 
 class SettingsPanel
@@ -292,16 +308,14 @@ public:
     {
         Ui::Config& config = Ui::Config::Get();
 
-        for (auto& style : Ui::Config::Get().NameplateStyles.StyleDefinitionsMap | std::views::values)
+        for (auto& style : Ui::Config::Get().NameplateStyles.StyleDefinitions)
         {
             RenderNameplateStyleConfigGroup(style, style.getKey().c_str());
         }
 
         if (ImGui::Button("Add New Style"))
         {
-            config.NameplateStyles.StyleDefinitionsMap.try_emplace(config.NameplateStyles.StyleDefinitionsMap.size(), config.NameplateStyles, fmt::format("Nameplate Style {}", config.NameplateStyles.StyleDefinitionsMap.size()));
-            config.NameplateStyles.StyleCount.set(config.NameplateStyles.StyleDefinitionsMap.size());
-            ResolveNameplateLabels();
+            config.NameplateStyles.AddNewStyle();
         }
     }
 

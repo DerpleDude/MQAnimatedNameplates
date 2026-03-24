@@ -57,10 +57,10 @@ public:
     ConfigVariable<mq::MQColor> TestColor{ *this, "TestColor", mq::MQColor(255,255,255) };
 };
 
-class NameplateStyleConfigGroup : public ConfigGroup
+class NameplateStyleDefinition : public ConfigGroup
 {
 public:
-    NameplateStyleConfigGroup(ConfigContainer& container, std::string name)
+    NameplateStyleDefinition(ConfigContainerBase& container, std::string name)
         : ConfigGroup(container, std::move(name))
     {
     }
@@ -94,13 +94,17 @@ public:
 
 class NameplateStylesContainer : public ConfigGroup
 {
-public:    NameplateStylesContainer(ConfigContainer& container, std::string name)
+public:    NameplateStylesContainer(ConfigContainerBase& container, std::string name)
     : ConfigGroup(container, std::move(name))
     {
     }
     
     ConfigVariable<uint32_t> StyleCount{ *this, "StyleCount", 0 };
-    std::map<uint32_t, NameplateStyleConfigGroup> StyleDefinitionsMap;
+    std::vector<NameplateStyleDefinition> StyleDefinitions;
+
+    void AddNewStyle();
+
+    virtual void OnLoaded() override;
 };
 
 class NameplateConfigGroup : public ConfigGroup
@@ -114,7 +118,7 @@ public:
     ConfigVariable<bool> Render{ *this, "Render", true };
     ConfigVariable<uint32_t> NameplateConfigStyle{ *this, "NameplateConfigStyle", 0 };
 
-    NameplateStyleConfigGroup& GetStyle();
+    NameplateStyleDefinition& GetStyle();
 };
 
 

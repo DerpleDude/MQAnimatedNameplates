@@ -71,6 +71,8 @@ public:
     virtual void SetDirty(bool dirty) = 0;
     virtual YAML::Node GetNode() = 0;
 
+    virtual void OnLoaded() = 0;
+
 protected:
     std::vector<ConfigVariableBase*> m_variables;
 };
@@ -93,6 +95,8 @@ public:
 
     void SaveConfig(const std::string& fileName);
     void LoadConfig(const std::string& fileName);
+
+    virtual void OnLoaded() override {}
 
 private:
     YAML::Node m_configNode;
@@ -146,6 +150,8 @@ public:
     // ConfigVariableBase
     virtual void Load(const YAML::Node& source) override;
     virtual bool Store(YAML::Node& target) const override;
+
+    virtual void OnLoaded() override {}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
