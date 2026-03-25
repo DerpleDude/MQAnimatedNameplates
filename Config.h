@@ -99,12 +99,12 @@ public:    NameplateStylesContainer(ConfigContainerBase& container, std::string 
     {
     }
     
-    ConfigVariable<uint32_t> StyleCount{ *this, "StyleCount", 0 };
     std::vector<NameplateStyleDefinition> StyleDefinitions;
 
-    void AddNewStyle();
+    void AddNewStyle(const char* name);
+    void DeleteStyle(const char* name);
 
-    virtual void OnLoaded() override;
+    virtual void Load(const YAML::Node& source) override;
 };
 
 class NameplateConfigGroup : public ConfigGroup

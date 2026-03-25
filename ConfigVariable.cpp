@@ -144,8 +144,6 @@ void ConfigContainer::LoadConfig(const std::string& fileName)
         // if we can't read the file, then try to write it with an empty config
         SaveConfig(fileName);
     }
-
-    OnLoaded();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -271,8 +269,6 @@ void ConfigGroup::Load(const YAML::Node& source)
     {
         var->Load(configNode);
     }
-
-    OnLoaded();
 }
 
 bool ConfigGroup::Store(YAML::Node& target) const

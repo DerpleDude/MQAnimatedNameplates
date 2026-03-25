@@ -21,6 +21,8 @@ bool AnimatedSlider(const char* label, unsigned int* slider_value, unsigned int 
 template <typename T> requires std::is_enum_v<T>
 bool AnimatedEnumCombo(const char* label, T* value);
 
+bool InlineConfirmButton(const char* buttonNormalText, const char* buttonAcceptText, const char* buttonCancelText, const float buttonHeight, char* inputText = nullptr, size_t inputTextSize = 0, ImU32 buttonColor = ImGui::GetColorU32(ImGuiCol_Button), ImU32 buttonHightColor = IM_COL32(52, 220, 52, 100));
+
 class AnimatedCheckmark
 {
 public:
@@ -63,6 +65,14 @@ struct AnimatedComboState
 {
     bool  open = false;
     float open_time = 0.0f;
+};
+
+struct AnimatedInlineConfirmState
+{
+    bool confirming = false;
+    float confirm_hover = 0.0f;
+    float cancel_hover = 0.0f;
+    float delete_hover = 0.0f;
 };
 
 } // namespace Ui

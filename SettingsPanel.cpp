@@ -204,6 +204,11 @@ void RenderNameplateStyleConfigGroup(Ui::NameplateStyleDefinition& group, const 
         RenderOption(group.ScaleFactor, "Overall Scale Factor", sliderLabelWidth, "%.2f");
         RenderOption(group.MaxCalculatedScaleFactor, "Max Scale Factor", sliderLabelWidth, "%.2f");
         ImGui::EndChild();
+
+        if (Ui::InlineConfirmButton("Delete Style", "Confirm", "Cancel", ImGui::GetTextLineHeightWithSpacing(), nullptr, 0, IM_COL32(220, 52, 52, 100), IM_COL32(220, 52, 52, 220)))
+        {
+            Ui::Config::Get().NameplateStyles.DeleteStyle(label);
+        }
     }
     ImGui::PopID();
     ImGui::PopStyleColor();
@@ -222,27 +227,51 @@ Ui::NameplateStyleDefinition& Ui::NameplateConfigGroup::GetStyle()
     return config.NameplateStyles.StyleDefinitions[NameplateConfigStyle];
 }
 
-void Ui::NameplateStylesContainer::OnLoaded()
+void Ui::NameplateStylesContainer::Load(const YAML::Node& source)
 {
-    // ensure we have everything loaded including our dynamic styles.
-    if (StyleCount.get() != StyleDefinitions.size())
-    {
-        for (uint32_t i = 0; i <= StyleCount.get(); ++i)
-        {
-            StyleDefinitions.emplace_back(*this, i == 0 ? "Nameplate Style Default" : fmt::format("Nameplate Style {}", i));
-            StyleDefinitions.back().Load(GetNode());
-        }
+    ConfigGroup::Load(source);
 
+    StyleDefinitions.emplace_back(*this, "Default");
+    StyleDefinitions.back().Load(GetNode());
+    // now load in all the custom configs.
+    if (GetNode().IsMap())
+    {
+        for (auto pair : GetNode())
+        {
+            std::string key = pair.first.as<std::string>();
+            if (key.compare("Default") != 0)
+            {
+                StyleDefinitions.emplace_back(*this, key);
+                StyleDefinitions.back().Load(GetNode());
+            }
+
+        }
     }
-    //ResolveNameplateLabels();
 }
 
-void Ui::NameplateStylesContainer::AddNewStyle()
+void Ui::NameplateStylesContainer::AddNewStyle(const char* name)
 {
-    StyleCount.set(StyleDefinitions.size() + 1);
+    // put this in first becuase 0 == Default when size == 1
+    StyleDefinitions.emplace_back(*this, name);
+    StyleDefinitions.back().GetNode() = YAML::Node(YAML::NodeType::Map);
+    SetDirty(true);
 
-    StyleDefinitions.emplace_back(*this, fmt::format("Nameplate Style {}", StyleCount.get()));
-    StyleDefinitions.back().SetDirty(true);
+    Config::Get().SaveSettings();
+
+    ResolveNameplateLabels();
+}
+
+void Ui::NameplateStylesContainer::DeleteStyle(const char* name)
+{
+    // make a local copy because we will delete the thing that owns name.
+    std::string nameString{ name };
+    // put this in first becuase 0 == Default when size == 1
+    std::erase_if(StyleDefinitions, [nameString](const auto& item) {
+        return item.getKey().compare(nameString) == 0; // Replace with your condition
+        });    
+    
+    GetNode().remove(nameString.c_str());
+    SetDirty(true);
     Config::Get().SaveSettings();
 
     ResolveNameplateLabels();
@@ -308,14 +337,16 @@ public:
     {
         Ui::Config& config = Ui::Config::Get();
 
-        for (auto& style : Ui::Config::Get().NameplateStyles.StyleDefinitions)
+        for (auto& style : config.NameplateStyles.StyleDefinitions)
         {
             RenderNameplateStyleConfigGroup(style, style.getKey().c_str());
         }
 
-        if (ImGui::Button("Add New Style"))
+        char inputText[512] = {0};
+
+        if (Ui::InlineConfirmButton("New Style", "Accept", "Cancel", ImGui::GetTextLineHeightWithSpacing(), inputText, sizeof(inputText)))
         {
-            config.NameplateStyles.AddNewStyle();
+            config.NameplateStyles.AddNewStyle(inputText);
         }
     }
 

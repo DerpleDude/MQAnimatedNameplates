@@ -10,6 +10,7 @@ namespace Ui {
 
 static std::unordered_map<ImGuiID, AnimatedCheckmark> s_checkBoxAnims;
 static std::unordered_map<ImU32, AnimatedComboState> s_comboAnimTimes;
+static std::unordered_map<ImU32, AnimatedInlineConfirmState> s_confirmStates;
 
 static const ImGuiID scale_id = ImHashStr("scale");
 static const ImGuiID arrow_rot_id = ImHashStr("arrow_rot");
@@ -389,5 +390,151 @@ bool AnimatedEnumCombo(const char* label, T* value)
 }
 
 template bool AnimatedEnumCombo<HPBarStyle>(const char*, HPBarStyle*);
+
+bool InlineConfirmButton(const char* buttonNormalText, const char* buttonAcceptText, const char* buttonCancelText, const float buttonHeight, char* inputText, size_t inputTextSize, ImU32 buttonColor, ImU32 buttonHighlightColor)
+{
+    const ImGuiID id = ImHashStr(buttonNormalText);
+
+    auto [state, inserted] = s_confirmStates.try_emplace(id);
+
+    auto& style = ImGui::GetStyle();
+    float dt = ImGui::GetIO().DeltaTime;
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+
+    bool accepted = false;
+
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    float padding = style.FramePadding.x;
+    float gap = 15;  // Gap between Confirm and Cancel
+
+    // Calculate text sizes for proper button widths
+    ImVec2 delete_size = ImGui::CalcTextSize(buttonNormalText);
+    ImVec2 confirm_size = ImGui::CalcTextSize(buttonAcceptText);
+    ImVec2 cancel_size = ImGui::CalcTextSize(buttonCancelText);
+
+    float collapsed_width = delete_size.x + padding * 2;
+    float confirm_btn_width = confirm_size.x + padding * 2;
+    float cancel_btn_width = cancel_size.x + padding * 2;
+    float expanded_total = confirm_btn_width + gap + cancel_btn_width;
+
+    ImVec4 textColor = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+
+    // Width animation
+    float target_width = state->second.confirming ? expanded_total : collapsed_width;
+    float animated_width = iam_tween_float(ImGui::GetID("conf_w"), ImHashStr("cw"),
+        target_width, 0.2f, iam_ease_preset(iam_ease_out_quad), iam_policy_crossfade, dt, collapsed_width);
+
+    // Background
+    ImU32 bg_col = state->second.confirming ? buttonHighlightColor : buttonColor;
+
+    if (!state->second.confirming)
+    {
+        dl->AddRectFilled(pos, ImVec2(pos.x + animated_width, pos.y + buttonHeight), bg_col, 4);
+
+        // Delete button hover detection
+        ImGui::SetCursorScreenPos(pos);
+        ImGui::InvisibleButton("delete_btn", ImVec2(animated_width, buttonHeight));
+        bool del_hovered = ImGui::IsItemHovered();
+        if (ImGui::IsItemClicked()) state->second.confirming = true;
+
+        // Animate delete button hover
+        state->second.delete_hover = iam_tween_float(ImGui::GetID("del_h"), ImHashStr("dh"),
+            del_hovered ? 1.0f : 0.0f, 0.15f, iam_ease_preset(iam_ease_out_quad), iam_policy_crossfade, dt);
+
+        // Hover highlight
+        if (state->second.delete_hover > 0.01f)
+        {
+            dl->AddRectFilled(pos, ImVec2(pos.x + animated_width, pos.y + buttonHeight),
+                IM_COL32(textColor.x, textColor.y, textColor.z, static_cast<int>(30 * state->second.delete_hover)), 4);
+        }
+
+        // Center "Delete" text in button
+        float text_x = pos.x + (animated_width - delete_size.x) * 0.5f;
+        dl->AddText(ImVec2(text_x, pos.y + (buttonHeight - delete_size.y) * 0.5f),
+            textColor.ToImU32(), buttonNormalText);
+    }
+    else
+    {
+        ImVec2 mouse = ImGui::GetMousePos();
+        // input text box.
+        int inputLen = 0;
+        float inputWidth = 0.0f;
+
+        if (inputText)
+        {
+            inputWidth = ImGui::GetContentRegionAvail().x * .45f;
+            ImGui::SetNextItemWidth(inputWidth);
+            ImGui::InputText("##animatedInlineConfirmText", inputText, inputTextSize);
+            inputLen = strlen(inputText);
+        }
+
+        pos.x += inputWidth;
+        float cancel_start_x = pos.x + confirm_btn_width + gap;
+
+        dl->AddRectFilled(pos, ImVec2(pos.x + animated_width, pos.y + buttonHeight), bg_col, 4);
+
+        // Check hover for each button
+        bool confirm_hovered = (mouse.x >= pos.x && mouse.x < pos.x + confirm_btn_width &&
+            mouse.y >= pos.y && mouse.y < pos.y + buttonHeight);
+        bool cancel_hovered = (mouse.x >= cancel_start_x && mouse.x < cancel_start_x + cancel_btn_width &&
+            mouse.y >= pos.y && mouse.y < pos.y + buttonHeight);
+
+        // Animate hover states
+        state->second.confirm_hover = iam_tween_float(ImGui::GetID("conf_h"), ImHashStr("ch"),
+            confirm_hovered ? 1.0f : 0.0f, 0.15f, iam_ease_preset(iam_ease_out_quad), iam_policy_crossfade, dt);
+        state->second.cancel_hover = iam_tween_float(ImGui::GetID("canc_h"), ImHashStr("cah"),
+            cancel_hovered ? 1.0f : 0.0f, 0.15f, iam_ease_preset(iam_ease_out_quad), iam_policy_crossfade, dt);
+
+        // Confirm button hover highlight
+        if (state->second.confirm_hover > 0.01f)
+        {
+            dl->AddRectFilled(pos, ImVec2(pos.x + confirm_btn_width, pos.y + buttonHeight),
+                IM_COL32(textColor.x, textColor.y, textColor.z, static_cast<int>(40 * state->second.confirm_hover)), 4, ImDrawFlags_RoundCornersLeft);
+        }
+
+        // Cancel button hover highlight
+        if (state->second.cancel_hover > 0.01f)
+        {
+            dl->AddRectFilled(ImVec2(cancel_start_x, pos.y),
+                ImVec2(cancel_start_x + cancel_btn_width, pos.y + buttonHeight),
+                IM_COL32(textColor.x, textColor.y, textColor.z, static_cast<int>(40 * state->second.cancel_hover)), 4, ImDrawFlags_RoundCornersRight);
+        }
+
+        // Center "Confirm" text in its section
+        float confirm_text_x = pos.x + (confirm_btn_width - confirm_size.x) * 0.5f;
+        dl->AddText(ImVec2(confirm_text_x, pos.y + (buttonHeight - confirm_size.y) * 0.5f),
+            (inputLen > 0 || inputTextSize == 0) ? textColor.ToImU32() : ImGui::GetColorU32(ImGuiCol_TextDisabled), buttonAcceptText);
+
+        // Center "Cancel" text in its section
+        float cancel_text_x = cancel_start_x + (cancel_btn_width - cancel_size.x) * 0.5f;
+        dl->AddText(ImVec2(cancel_text_x, pos.y + (buttonHeight - cancel_size.y) * 0.5f),
+            textColor.ToImU32(), buttonCancelText);
+
+        // Handle clicks
+        ImGui::SetCursorScreenPos(pos);
+        ImGui::InvisibleButton("conf_area", ImVec2(animated_width, buttonHeight));
+        if (ImGui::IsItemClicked())
+        {
+            if (mouse.x < pos.x + confirm_btn_width)
+            {
+                // ok only valid with input.
+                if (inputLen > 0 || inputTextSize == 0)
+                {
+                    accepted = true;
+                    state->second.confirming = false;
+                }
+            }
+            else
+            {
+                // cancel always valid
+                state->second.confirming = false;
+            }
+        }
+    }
+
+    ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + buttonHeight + style.ItemSpacing.y * 2.0f));
+
+    return accepted;
+}
 
 } // namespace Ui
