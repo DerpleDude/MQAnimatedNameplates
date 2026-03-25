@@ -143,7 +143,7 @@ void RenderNameplateConfigGroup(Ui::NameplateConfigGroup& group, const char* lab
     ImGui::PopID();
 }
 
-void RenderNameplateStyleConfigGroup(Ui::NameplateStyleDefinition& group, const char* label)
+void RenderNameplateStyleConfigGroup(Ui::NameplateStyleDefinition& group, const char* label, bool canDelete)
 {
     ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(52,52,52,52));
     ImGui::PushID(&group);
@@ -203,12 +203,17 @@ void RenderNameplateStyleConfigGroup(Ui::NameplateStyleDefinition& group, const 
         ImGui::NewLine();
         RenderOption(group.ScaleFactor, "Overall Scale Factor", sliderLabelWidth, "%.2f");
         RenderOption(group.MaxCalculatedScaleFactor, "Max Scale Factor", sliderLabelWidth, "%.2f");
-        ImGui::EndChild();
 
-        if (Ui::InlineConfirmButton("Delete Style", "Confirm", "Cancel", ImGui::GetTextLineHeightWithSpacing(), nullptr, 0, IM_COL32(220, 52, 52, 100), IM_COL32(220, 52, 52, 220)))
+        ImGui::NewLine();
+
+        if (canDelete && Ui::InlineConfirmButton("Delete Style", "Confirm", "Cancel", ImGui::GetTextLineHeightWithSpacing(), nullptr, 0, IM_COL32(220, 52, 52, 100), IM_COL32(220, 52, 52, 220)))
         {
             Ui::Config::Get().NameplateStyles.DeleteStyle(label);
         }
+
+        ImGui::EndChild();
+
+
     }
     ImGui::PopID();
     ImGui::PopStyleColor();
@@ -337,9 +342,9 @@ public:
     {
         Ui::Config& config = Ui::Config::Get();
 
-        for (auto& style : config.NameplateStyles.StyleDefinitions)
+        for (int i = 0; auto& style : config.NameplateStyles.StyleDefinitions)
         {
-            RenderNameplateStyleConfigGroup(style, style.getKey().c_str());
+            RenderNameplateStyleConfigGroup(style, style.getKey().c_str(), i++ != 0);
         }
 
         char inputText[512] = {0};

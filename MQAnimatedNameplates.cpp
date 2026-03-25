@@ -311,7 +311,7 @@ PLUGIN_API void OnUpdateImGui()
                         s_nameplatesToRenderByDistance.push_back(&it->second);
                     }
 
-                    it->second.SetNameplateType(Ui::NameplateType::NameplateType_NPC);
+                    it->second.SetNameplateType(GetSpawnType(pSpawn) == PC ? Ui::NameplateType::NameplateType_PC : Ui::NameplateType::NameplateType_NPC);
                 }
 
                 pSpawn = pSpawn->GetNext();

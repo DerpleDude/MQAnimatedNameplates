@@ -400,7 +400,7 @@ bool InlineConfirmButton(const char* buttonNormalText, const char* buttonAcceptT
     auto& style = ImGui::GetStyle();
     float dt = ImGui::GetIO().DeltaTime;
     ImDrawList* dl = ImGui::GetWindowDrawList();
-
+    
     bool accepted = false;
 
     ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -426,7 +426,7 @@ bool InlineConfirmButton(const char* buttonNormalText, const char* buttonAcceptT
 
     // Background
     ImU32 bg_col = state->second.confirming ? buttonHighlightColor : buttonColor;
-
+    
     if (!state->second.confirming)
     {
         dl->AddRectFilled(pos, ImVec2(pos.x + animated_width, pos.y + buttonHeight), bg_col, 4);
@@ -531,10 +531,13 @@ bool InlineConfirmButton(const char* buttonNormalText, const char* buttonAcceptT
             }
         }
     }
-
+    
     ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y + buttonHeight + style.ItemSpacing.y * 2.0f));
+    ImGui::Dummy(ImVec2{ 1.0f, 1.0f });
 
     return accepted;
+    
+    return false;
 }
 
 } // namespace Ui
